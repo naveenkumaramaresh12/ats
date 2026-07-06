@@ -68,23 +68,14 @@ function generateEID(fullName: string, role: Role): string {
   const nameParts = fullName.trim().split(' ').filter(p => p.length > 0);
   const initials = nameParts.map(p => p[0].toUpperCase()).join('');
 
-  // Role prefixes
-  const rolePrefixes: Record<Role, string> = {
-    recruiter: 'REC',
-    tl: 'TL',
-    manager: 'MGR',
-    admin: 'ADM',
-    spoc: 'SPOC',
-  };
-
-  const prefix = rolePrefixes[role] || 'EMP';
+  // Always use 'EMP' prefix
+  const prefix = 'EMP';
 
   // Generate sequential number (in real app, fetch from DB)
   // For now using timestamp-based unique number
   const timestamp = Date.now().toString().slice(-3);
-  const random = Math.floor(Math.random() * 100).toString().padStart(2, '0');
 
-  // Format: PREFIX-SEQ-INITIALS (e.g., REC-001-AS)
+  // Format: PREFIX-SEQ-INITIALS (e.g., EMP-001-AS)
   return `${prefix}-${timestamp}-${initials}`.toUpperCase();
 }
 

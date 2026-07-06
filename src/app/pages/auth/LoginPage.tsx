@@ -31,7 +31,7 @@ export function LoginPage() {
     try {
       if (loginMode === 'employee') {
         const data = await api.login(employeeId.trim(), password, isWFH);
-        const needsFaceCheck = ['recruiter', 'tl', 'manager', 'admin'].includes(data.user.role);
+        const needsFaceCheck = ['recruiter', 'tl', 'manager'].includes(data.user.role);
         if (needsFaceCheck) {
           setTempAuthData(data);
           setShowFaceModal(true);
