@@ -1,0 +1,959 @@
+import { useState, useEffect, useRef } from 'react';
+import { Link, useNavigate } from 'react-router';
+import {
+  Monitor, Clock, FileText, AlertTriangle, Shield, Activity, TrendingUp, TrendingDown,
+  Loader2, ExternalLink, Phone, Users, Calendar, ArrowRight, AlertCircle, CheckCircle2,
+  ScanLine, UserPlus, ListChecks, CalendarCheck, Briefcase, UserCheck, X, PhoneMissed,
+  PhoneOff, PhoneCall, ClipboardList, FileCheck, UserX, Building2, BadgeCheck, Clipboard,
+  DollarSign, BarChart2, Edit3, UserCog, StickyNote, ChevronDown, Database, CheckSquare,
+  Mail, FileSpreadsheet,
+} from 'lucide-react';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  LineChart, Line, PieChart, Pie, Cell, Legend,
+} from 'recharts';
+import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
+import { getGreeting } from '../../utils/greetingUtils';
+import { TeamStructureManager } from '../../components/TeamStructureManager';
+
+// ─── Source Links ─────────────────────────────────────────────────────────────
+const SOURCE_LINKS: Record<string, string> = {
+  Naukri: 'https://www.naukri.com',
+  LinkedIn: 'https://www.linkedin.com/jobs',
+  Indeed: 'https://www.indeed.co.in',
+  Referral: '',
+  'Walk-In': '',
+  Direct: '',
+  Monster: 'https://www.monsterindia.com',
+  Shine: 'https://www.shine.com',
+  Apna: 'https://apna.co',
+  IIMJobs: 'https://www.iimjobs.com',
+};
+
+const ALERT_STYLES: Record<string, string> = {
+  warning: 'bg-amber-50 border-amber-200 text-amber-800',
+  error: 'bg-red-50 border-red-200 text-red-700',
+  info: 'bg-green-50 border-green-200 text-green-700',
+};
+const ALERT_ICONS: Record<string, string> = { warning: '⚠️', error: '🔴', info: 'ℹ️' };
+
+// ─── Recruiter constants ───────────────────────────────────────────────────────
+const STATUS_ICON_MAP: Record<string, any> = {
+  'Eligible Candidates': UserCheck,
+  'Wrong Number': PhoneOff,
+  'Did Not Pick': PhoneMissed,
+  'Call Back': PhoneCall,
+  'HR Shortlist': ClipboardList,
+  'Written Test': FileText,
+  'Operations Round': Building2,
+  'Selected': BadgeCheck,
+  'Documentation': Clipboard,
+  'Yet To Join': UserX,
+  'Joined': CheckCircle2,
+  'New': UserPlus,
+  'Contacted': Phone,
+  'Interested': CheckCircle2,
+  'Interview Scheduled': Calendar,
+  'Rejected': X,
+};
+
+const STATUS_COLOR_LIST = ['emerald','red','orange','amber','violet','indigo','cyan','teal','sky','pink','green'];
+
+const STATUS_COLOR_MAP: Record<string, { card: string; icon: string; badge: string }> = {
+  emerald: { card: 'border-emerald-100 bg-emerald-50/60 hover:bg-emerald-50',  icon: 'bg-emerald-100 text-emerald-600', badge: 'text-emerald-700' },
+  red:     { card: 'border-red-100 bg-red-50/60 hover:bg-red-50',              icon: 'bg-red-100 text-red-500',         badge: 'text-red-600' },
+  orange:  { card: 'border-orange-100 bg-orange-50/60 hover:bg-orange-50',     icon: 'bg-orange-100 text-orange-600',   badge: 'text-orange-700' },
+  amber:   { card: 'border-amber-100 bg-amber-50/60 hover:bg-amber-50',        icon: 'bg-amber-100 text-amber-600',     badge: 'text-amber-700' },
+  violet:  { card: 'border-violet-100 bg-violet-50/60 hover:bg-violet-50',     icon: 'bg-violet-100 text-violet-600',   badge: 'text-violet-700' },
+  indigo:  { card: 'border-indigo-100 bg-indigo-50/60 hover:bg-indigo-50',     icon: 'bg-indigo-100 text-indigo-600',   badge: 'text-indigo-700' },
+  cyan:    { card: 'border-cyan-100 bg-cyan-50/60 hover:bg-cyan-50',           icon: 'bg-cyan-100 text-cyan-600',       badge: 'text-cyan-700' },
+  teal:    { card: 'border-teal-100 bg-teal-50/60 hover:bg-teal-50',           icon: 'bg-teal-100 text-teal-600',       badge: 'text-teal-700' },
+  sky:     { card: 'border-sky-100 bg-sky-50/60 hover:bg-sky-50',              icon: 'bg-sky-100 text-sky-600',         badge: 'text-sky-700' },
+  pink:    { card: 'border-pink-100 bg-pink-50/60 hover:bg-pink-50',           icon: 'bg-pink-100 text-pink-600',       badge: 'text-pink-700' },
+  green:   { card: 'border-green-100 bg-green-50/60 hover:bg-green-50',        icon: 'bg-green-100 text-green-600',     badge: 'text-green-700' },
+};
+
+const colorMap: Record<string, { card: string; icon: string; badge: string }> = {
+  blue:    { card: 'border-green-100 bg-green-50/40',    icon: 'bg-green-100 text-green-600',     badge: 'bg-green-100 text-green-700' },
+  amber:   { card: 'border-amber-100 bg-amber-50/40',    icon: 'bg-amber-100 text-amber-600',     badge: 'bg-amber-100 text-amber-700' },
+  violet:  { card: 'border-violet-100 bg-violet-50/40',  icon: 'bg-violet-100 text-violet-600',   badge: 'bg-violet-100 text-violet-700' },
+  emerald: { card: 'border-emerald-100 bg-emerald-50/40',icon: 'bg-emerald-100 text-emerald-600', badge: 'bg-emerald-100 text-emerald-700' },
+};
+
+const activityColors: Record<string, string> = {
+  call:   'bg-green-100 text-green-600',
+  status: 'bg-violet-100 text-violet-600',
+  resume: 'bg-emerald-100 text-emerald-600',
+  walkin: 'bg-amber-100 text-amber-600',
+  follow: 'bg-slate-100 text-slate-500',
+};
+
+// ─── TL constants ──────────────────────────────────────────────────────────────
+const TL_STATUS_COLORS: Record<string, { dot: string; badge: string }> = {
+  online:    { dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
+  break:     { dot: 'bg-amber-500',   badge: 'bg-amber-100 text-amber-700' },
+  offline:   { dot: 'bg-slate-300',   badge: 'bg-slate-100 text-slate-500' },
+  'on-target':{ dot: 'bg-emerald-500', badge: 'bg-emerald-100 text-emerald-700' },
+};
+
+// ─── Manager constants ─────────────────────────────────────────────────────────
+const PIE_COLORS = ['#16A34A', '#7C3AED', '#059669', '#D97706', '#DC2626'];
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+type DateRange = 'Day' | 'Week' | 'Quarter' | 'Year' | 'All' | 'Custom';
+type Tab = 'overview' | 'recruiting' | 'team' | 'structure' | 'analytics';
+const DATE_TABS: DateRange[] = ['Day', 'Week', 'Quarter', 'Year', 'All', 'Custom'];
+const TABS: { id: Tab; label: string }[] = [
+  { id: 'overview',   label: 'Overview' },
+  { id: 'recruiting', label: 'Recruiting' },
+  { id: 'team',       label: 'Team' },
+  { id: 'structure',  label: 'Team Structure' },
+  { id: 'analytics',  label: 'Analytics' },
+];
+
+export function AdminDashboard() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const fmt = (n: number) => n >= 100000 ? `₹${(n / 100000).toFixed(1)}L` : `₹${(n / 1000).toFixed(0)}K`;
+
+  const [activeTab, setActiveTab] = useState<Tab>('overview');
+  const [loading, setLoading] = useState(true);
+  const isFirstRender = useRef(true);
+
+  // ── Overview state ──────────────────────────────────────────────────────────
+  const [sourceData, setSourceData]     = useState<any[]>([]);
+  const [alerts, setAlerts]             = useState<any[]>([]);
+  const [adminMetrics, setAdminMetrics] = useState<any>({});
+
+  // ── Recruiter state ─────────────────────────────────────────────────────────
+  const [dateRange, setDateRange]   = useState<DateRange>('Day');
+  const [customFrom, setCustomFrom] = useState('');
+  const [customTo, setCustomTo]     = useState('');
+  const [recLoading, setRecLoading] = useState(false);
+  const [dashData, setDashData]     = useState<any>(null);
+
+  // ── TL state ────────────────────────────────────────────────────────────────
+  const [teams, setTeams]             = useState<any[]>([]);
+  const [teamSummary, setTeamSummary] = useState<any>({ totalCalls: 0, totalInterviews: 0, totalFollowUps: 0, activeRecruiters: 0 });
+
+  // ── Manager state ───────────────────────────────────────────────────────────
+  const [conversionData, setConversionData] = useState<any[]>([]);
+  const [recruiterData, setRecruiterData]   = useState<any[]>([]);
+  const [mgrSourceData, setMgrSourceData]   = useState<any[]>([]);
+  const [revenueData, setRevenueData]       = useState<any[]>([]);
+  const [kpis, setKpis]                     = useState<any>({});
+
+  const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  // ── Helpers to map API responses ────────────────────────────────────────────
+  const applyTLData = (tlData: any) => {
+    // If Admin/Manager, tlData should have .teams and .summary
+    if (tlData.teams && tlData.summary) {
+      setTeams(tlData.teams);
+      setTeamSummary(tlData.summary);
+    } else {
+      // Fallback for single TL view (though AdminDashboard now calls all-teams)
+      const t = tlData.teamMembers || tlData.team || tlData.recruiters || [];
+      const mappedRecruiters = t.map((r: any) => ({
+        id: r._id || r.id,
+        name: r.name || '',
+        calls: r.calls ?? r.todayCalls ?? 0,
+        target: r.target ?? r.callTarget ?? r.dailyTarget ?? 50,
+        interviews: r.interviews ?? r.todayInterviews ?? r.interviewsScheduled ?? 0,
+        followUps: r.followUps ?? r.pendingFollowUps ?? 0,
+        joinedCount: r.joinedCount ?? 0,
+        status: r.onTarget ? 'on-target' : r.status || 'offline',
+        joined: r.joined || r.loginTime || '—',
+      }));
+      setTeams([{ tlName: 'Self', recruiters: mappedRecruiters, stats: { totalCalls: mappedRecruiters.reduce((s:any, r:any) => s + r.calls, 0) } }]);
+      setTeamSummary({
+        totalCalls: mappedRecruiters.reduce((s:any, r:any) => s+r.calls, 0),
+        totalInterviews: mappedRecruiters.reduce((s:any, r:any) => s+r.interviews, 0),
+        totalFollowUps: mappedRecruiters.reduce((s:any, r:any) => s+r.followUps, 0),
+        activeRecruiters: mappedRecruiters.length
+      });
+    }
+  };
+
+  const applyManagerData = (mgrData: any) => {
+    const rawFunnel = mgrData.funnelData || mgrData.conversionData || mgrData.funnel || [];
+    setConversionData(rawFunnel.map((f: any) => ({
+      month: f.month,
+      resumes: f.resumes ?? f.applied ?? 0,
+      interviews: f.interviews ?? f.interviewed ?? 0,
+      hired: f.hired ?? f.selected ?? f.joined ?? 0,
+    })));
+    setRecruiterData((mgrData.recruiterProductivity || mgrData.recruiterData || []).map((r: any) => ({
+      ...r,
+      placed: r.placed ?? r.placements ?? 0,
+    })));
+    setMgrSourceData((mgrData.sourceDistribution || mgrData.sourceData || []).map((s: any, i: number) => ({
+      name: s.name || s.source || '',
+      value: s.value ?? s.count ?? 0,
+      color: s.color || PIE_COLORS[i % PIE_COLORS.length],
+    })));
+    setRevenueData(mgrData.revenueData || mgrData.revenueTrend || []);
+    const kpiData = mgrData.kpis || mgrData.summary || {};
+    setKpis({ ...kpiData, conversionRate: kpiData.conversionRate ?? kpiData.interviewToHireRate ?? '—' });
+  };
+
+  // ── Initial full load ────────────────────────────────────────────────────────
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const [adminData, tlData, mgrData, recData] = await Promise.all([
+          api.getAdminDashboard(),
+          api.getAllTeamsDashboard(),
+
+          api.getManagerDashboard(),
+          api.getRecruiterDashboard({ range: 'day' }),
+        ]);
+        const m = adminData.metrics || adminData.kpis || {};
+        setAdminMetrics({ ...m, resumesReceived: m.resumesReceived ?? m.totalResumes ?? '—' });
+        setSourceData(adminData.sourceChart || adminData.sourceData || adminData.resumeInflow || []);
+        setAlerts((adminData.alerts || []).map((a: any) => ({ ...a, msg: a.msg || a.message || '' })));
+        applyTLData(tlData);
+        applyManagerData(mgrData);
+        setDashData(recData);
+      } catch (err) {
+        console.error('Failed to load admin super-dashboard:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Recruiter date-filter refresh (skip first render) ───────────────────────
+  useEffect(() => {
+    if (isFirstRender.current) { isFirstRender.current = false; return; }
+    if (dateRange === 'Custom' && (!customFrom || !customTo)) return;
+    const loadRec = async () => {
+      try {
+        setRecLoading(true);
+        const params: Record<string, string> = { range: dateRange.toLowerCase() };
+        if (dateRange === 'Custom') { params.from = customFrom; params.to = customTo; }
+        const data = await api.getRecruiterDashboard(params);
+        setDashData(data);
+      } catch (err) {
+        console.error('Recruiter data reload failed:', err);
+      } finally {
+        setRecLoading(false);
+      }
+    };
+    loadRec();
+  }, [dateRange, customFrom, customTo]);
+
+  // ── Derived values ───────────────────────────────────────────────────────────
+  const STATUS_CARDS = dashData?.pipeline
+    ? Object.entries(dashData.pipeline).map(([label, count]: any, i: number) => ({
+        label, count: count || 0,
+        color: STATUS_COLOR_LIST[i % STATUS_COLOR_LIST.length],
+        icon: STATUS_ICON_MAP[label] || UserCheck,
+      }))
+    : [];
+
+  const followUps      = dashData?.followUps || [];
+  const recentActivity = dashData?.recentActivity || [];
+  const recMetrics = {
+    todayCalls:          dashData?.metrics?.todayCalls ?? dashData?.todayCalls ?? 0,
+    followUpsDue:        dashData?.metrics?.followUpsDue ?? dashData?.followUpsDue ?? (dashData?.followUps?.length || 0),
+    interviewsScheduled: dashData?.metrics?.scheduledInterviews ?? dashData?.interviewsScheduled ?? 0,
+    resumeInflow:        dashData?.metrics?.totalCandidates ?? dashData?.resumeInflow ?? 0,
+    dailyTarget:         dashData?.callTarget?.target ?? dashData?.dailyTarget ?? 50,
+  };
+
+  const totalCalls      = teamSummary.totalCalls || 0;
+  const totalInterviews = teamSummary.totalInterviews || 0;
+  const totalFollowUps  = teamSummary.totalFollowUps || 0;
+
+  const goToStatus    = (status: string) => navigate('/admin/candidates', { state: { statusFilter: status } });
+  const goToTodayCalls = () => navigate('/recruiter/resumes', { state: { todayCalls: true } });
+  const goToSource     = (source: string) => navigate('/admin/candidates', { state: { sourceFilter: source } });
+
+  // ── Sticky Notes ───────────────────────────────────────────────────────────
+  const [notesOpen, setNotesOpen] = useState(false);
+  const [noteText, setNoteText] = useState(() => localStorage.getItem('ats_sticky_notes') || '');
+  const saveNote = (v: string) => { setNoteText(v); localStorage.setItem('ats_sticky_notes', v); };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-6 max-w-6xl mx-auto space-y-6">
+
+      {/* ── Sticky Notes Widget ─────────────────────────────────────── */}
+      <div className="fixed bottom-6 right-6 z-50">
+        {notesOpen ? (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl shadow-2xl w-72 flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-4 py-3 bg-amber-100 border-b border-amber-200">
+              <div className="flex items-center gap-2">
+                <StickyNote className="w-4 h-4 text-amber-700" />
+                <span className="text-amber-800 text-sm" style={{ fontWeight: 600 }}>Quick Notes</span>
+              </div>
+              <button onClick={() => setNotesOpen(false)} className="text-amber-600 hover:text-amber-800">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <textarea
+              value={noteText}
+              onChange={e => saveNote(e.target.value)}
+              placeholder="Type your notes here... Auto-saved."
+              className="flex-1 p-4 bg-amber-50 text-slate-700 text-sm resize-none outline-none min-h-[180px]"
+              style={{ fontFamily: 'inherit' }}
+            />
+            <div className="px-4 py-2 bg-amber-50 border-t border-amber-200 flex justify-between items-center">
+              <span className="text-amber-600 text-xs">Auto-saved</span>
+              {noteText && (
+                <button onClick={() => saveNote('')} className="text-amber-500 hover:text-red-500 text-xs" style={{ fontWeight: 500 }}>
+                  Clear
+                </button>
+              )}
+            </div>
+          </div>
+        ) : (
+          <button
+            onClick={() => setNotesOpen(true)}
+            className="w-14 h-14 bg-amber-400 hover:bg-amber-500 text-white rounded-2xl shadow-lg flex items-center justify-center transition-all hover:scale-105 relative"
+            title="Quick Notes"
+          >
+            <StickyNote className="w-6 h-6" />
+            {noteText && <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full" />}
+          </button>
+        )}
+      </div>
+
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div>
+          <h1 className="text-slate-800" style={{ fontWeight: 700, fontSize: '1.5rem' }}>
+            {getGreeting()}, {user?.name.split(' ')[0]}! 👋
+          </h1>
+          <p className="text-slate-500 text-sm mt-0.5">System overview — {today}</p>
+        </div>
+        <span className="self-start sm:self-auto px-3 py-1.5 bg-red-50 text-red-600 border border-red-100 text-xs rounded-full" style={{ fontWeight: 600 }}>
+          Admin · Super Access
+        </span>
+      </div>
+
+      {/* Tab Bar */}
+      <div className="flex gap-1 bg-slate-100 p-1 rounded-xl w-fit">
+        {TABS.map(tab => (
+          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
+            className={`px-5 py-2 rounded-lg text-sm transition-all ${
+              activeTab === tab.id ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-700'
+            }`}
+            style={{ fontWeight: activeTab === tab.id ? 600 : 400 }}>
+            {tab.label}
+          </button>
+        ))}
+      </div>
+
+      {/* ══════════════ TAB: OVERVIEW ══════════════ */}
+      {activeTab === 'overview' && (
+        <>
+          {/* System Metrics */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Active Logins Today', value: adminMetrics.activeLogins ?? '—', sub: adminMetrics.wfhSub || '',  icon: Monitor,        color: 'blue',    href: '/admin/attendance' },
+              { label: 'Attendance Rate',     value: adminMetrics.attendanceRate ?? '—', sub: adminMetrics.attendanceSub || '', icon: Clock, color: 'emerald', href: '/admin/attendance' },
+              { label: 'Resumes Received',    value: adminMetrics.resumesReceived ?? '—', sub: adminMetrics.resumesSub || '', icon: FileText, color: 'violet', href: '/recruiter/resumes' },
+              { label: 'Pending Alerts',      value: alerts.length || '0', sub: `${alerts.filter((a: any) => a.type === 'error').length} critical`, icon: AlertTriangle, color: 'amber', href: '/admin/logs' },
+            ].map((m, i) => {
+              const Icon = m.icon;
+              const bg: Record<string, string> = {
+                blue: 'bg-green-50 text-green-600', emerald: 'bg-emerald-50 text-emerald-600',
+                violet: 'bg-violet-50 text-violet-600', amber: 'bg-amber-50 text-amber-600',
+              };
+              return (
+                <button key={i} onClick={() => navigate(m.href)}
+                  className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm text-left hover:shadow-md hover:-translate-y-0.5 transition-all cursor-pointer w-full">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${bg[m.color]}`}><Icon className="w-4 h-4" /></div>
+                  <div className="text-slate-800 mb-0.5" style={{ fontWeight: 700, fontSize: '1.75rem' }}>{m.value}</div>
+                  <div className="text-slate-500 text-sm">{m.label}</div>
+                  <div className="text-slate-400 text-xs mt-0.5">{m.sub}</div>
+                </button>
+              );
+            })}
+          </div>
+
+          <div className="mb-5">
+            {/* Resume Inflow by Source */}
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-slate-800 text-sm" style={{ fontWeight: 600 }}>Resume Inflow by Source</h3>
+                <span className="text-slate-400 text-xs">Today</span>
+              </div>
+              <ResponsiveContainer width="100%" height={180}>
+                <BarChart data={sourceData} barSize={32} barCategoryGap="30%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                  <XAxis dataKey="source" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ fontSize: 12, border: '1px solid #E2E8F0', borderRadius: 8 }} />
+                  <Bar dataKey="count" name="Resumes" fill="#16A34A" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+              <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-slate-100">
+                {sourceData.map((s: any, i: number) => {
+                  const url = SOURCE_LINKS[s.source] || SOURCE_LINKS[s.name] || '';
+                  const label = s.source || s.name || '';
+                  return (
+                    <div key={i} className="flex items-center gap-1">
+                      <button
+                        onClick={() => goToSource(label)}
+                        className="flex items-center gap-1 text-xs px-2.5 py-1 bg-green-50 text-green-700 border border-green-100 rounded-full hover:bg-green-100 transition-colors"
+                        style={{ fontWeight: 500 }}
+                        title={`View ${label} candidates`}
+                      >
+                        {label}
+                      </button>
+                      {url && (
+                        <a href={url} target="_blank" rel="noopener noreferrer"
+                          className="p-1 text-slate-400 hover:text-green-600 transition-colors"
+                          title={`Open ${label} website`}>
+                          <ExternalLink className="w-3 h-3" />
+                        </a>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Nav */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {[
+              { label: 'Attendance',      href: '/admin/attendance', icon: Clock,      desc: 'Login/logout & WFH',        color: 'blue' },
+              { label: 'User Management', href: '/admin/users',      icon: UserCog,    desc: 'Add, edit & manage users',  color: 'violet' },
+              { label: 'Access Control',  href: '/admin/access',     icon: Shield,     desc: 'Roles & permissions',       color: 'violet' },
+              { label: 'System Logs',     href: '/admin/logs',       icon: Activity,   desc: 'Activity & audit trail',    color: 'emerald' },
+              { label: 'Revenue',         href: '/revenue',          icon: TrendingUp, desc: 'Revenue & invoices',        color: 'amber' },
+            ].map((n, i) => {
+              const Icon = n.icon;
+              const bg: Record<string, string> = {
+                blue: 'bg-green-50 text-green-600 border-green-100',
+                violet: 'bg-violet-50 text-violet-600 border-violet-100',
+                emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                amber: 'bg-amber-50 text-amber-600 border-amber-100',
+              };
+              return (
+                <Link key={i} to={n.href} className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 border ${bg[n.color]}`}><Icon className="w-5 h-5" /></div>
+                  <p className="text-slate-800 text-sm" style={{ fontWeight: 600 }}>{n.label}</p>
+                  <p className="text-slate-400 text-xs mt-1">{n.desc}</p>
+                </Link>
+              );
+            })}
+          </div>
+
+          {/* Admin Shortcuts: New Modules */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            {[
+              { label: 'Job Requirements', href: '/admin/jobs',         icon: Briefcase,       desc: 'Manage JRs & job openings',   color: 'bg-teal-50 text-teal-600 border-teal-100' },
+              { label: 'Companies',        href: '/admin/companies',    icon: Building2,       desc: 'Company profiles & tracking', color: 'bg-sky-50 text-sky-600 border-sky-100' },
+              { label: 'Candidate DB',     href: '/admin/candidates',   icon: Database,        desc: 'Full candidate database',     color: 'bg-indigo-50 text-indigo-600 border-indigo-100' },
+              { label: 'Team Tasks',       href: '/admin/tasks',        icon: CheckSquare,     desc: 'Assign & track daily tasks',  color: 'bg-rose-50 text-rose-600 border-rose-100' },
+              { label: 'ATS Records',      href: '/admin/ats-records',  icon: FileSpreadsheet, desc: 'Scanned resumes & Excel export', color: 'bg-green-50 text-green-600 border-green-100' },
+            ].map((n, i) => {
+              const Icon = n.icon;
+              return (
+                <Link key={i} to={n.href} className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm hover:shadow-md transition-shadow">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-3 border ${n.color}`}><Icon className="w-5 h-5" /></div>
+                  <p className="text-slate-800 text-sm" style={{ fontWeight: 600 }}>{n.label}</p>
+                  <p className="text-slate-400 text-xs mt-1">{n.desc}</p>
+                </Link>
+              );
+            })}
+          </div>
+        </>
+      )}
+
+      {/* ══════════════ TAB: RECRUITING ══════════════ */}
+      {activeTab === 'recruiting' && (
+        <>
+          {/* Date Filter Bar */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs text-slate-400 mr-1" style={{ fontWeight: 600 }}>FILTER BY:</span>
+              <div className="flex gap-1 flex-wrap">
+                {DATE_TABS.map(tab => (
+                  <button key={tab} onClick={() => setDateRange(tab)}
+                    className={`px-4 py-1.5 rounded-lg text-xs transition-colors ${
+                      dateRange === tab ? 'bg-green-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    style={{ fontWeight: dateRange === tab ? 600 : 500 }}>{tab}</button>
+                ))}
+              </div>
+              {dateRange === 'Custom' && (
+                <div className="flex items-center gap-2 ml-2 flex-wrap">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-400">From</span>
+                    <input type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)}
+                      className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-green-400 bg-white" />
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-slate-400">To</span>
+                    <input type="date" value={customTo} onChange={e => setCustomTo(e.target.value)}
+                      className="px-3 py-1.5 border border-slate-200 rounded-lg text-xs outline-none focus:border-green-400 bg-white" />
+                  </div>
+                  {(customFrom || customTo) && (
+                    <button onClick={() => { setCustomFrom(''); setCustomTo(''); }}
+                      className="p-1.5 text-slate-400 hover:text-slate-600"><X className="w-3.5 h-3.5" /></button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {recLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="w-6 h-6 text-green-600 animate-spin" />
+            </div>
+          ) : (
+            <>
+              {/* Top 4 Metrics */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {[
+                  { label: "Today's Calls",       value: String(recMetrics.todayCalls),          change: `+${recMetrics.todayCalls}`,          color: 'blue',    icon: Phone,         clickable: true },
+                  { label: 'Follow-Ups Due',       value: String(recMetrics.followUpsDue),        change: 'Urgent',                            color: 'amber',   icon: AlertCircle,   clickable: false },
+                  { label: 'Interviews Scheduled', value: String(recMetrics.interviewsScheduled), change: 'This week',                         color: 'violet',  icon: Calendar,      clickable: false },
+                  { label: 'Resume Inflow',        value: String(recMetrics.resumeInflow),        change: `+${recMetrics.resumeInflow} today`, color: 'emerald', icon: FileText,      clickable: false },
+                ].map((m, i) => {
+                  const Icon = m.icon;
+                  const c = colorMap[m.color];
+                  const content = (
+                    <>
+                      <div className="flex items-center justify-between mb-3">
+                        <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${c.icon}`}><Icon className="w-4 h-4" /></div>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${c.badge}`} style={{ fontWeight: 500 }}>{m.change}</span>
+                      </div>
+                      <div className="text-slate-800" style={{ fontWeight: 700, fontSize: '1.75rem' }}>{m.value}</div>
+                      <div className="text-slate-500 text-sm mt-0.5 flex items-center gap-1">
+                        {m.label}{m.clickable && <ArrowRight className="w-3 h-3 text-green-500 ml-auto" />}
+                      </div>
+                    </>
+                  );
+                  return m.clickable ? (
+                    <button key={i} onClick={goToTodayCalls}
+                      className={`bg-white rounded-xl p-5 border shadow-sm text-left transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer ${c.card}`}>{content}</button>
+                  ) : (
+                    <div key={i} className={`bg-white rounded-xl p-5 border shadow-sm ${c.card}`}>{content}</div>
+                  );
+                })}
+              </div>
+
+              {/* Pipeline Status Cards */}
+              <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-slate-800 text-sm" style={{ fontWeight: 600 }}>Candidate Pipeline Status</h2>
+                    <p className="text-slate-400 text-xs mt-0.5">Click any card to view filtered candidate list</p>
+                  </div>
+                  <span className="text-xs text-slate-400 bg-slate-50 border border-slate-100 px-2.5 py-1 rounded-full">
+                    {STATUS_CARDS.reduce((s, c) => s + c.count, 0)} total
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-3">
+                  {STATUS_CARDS.map((s, i) => {
+                    const Icon = s.icon;
+                    const c = STATUS_COLOR_MAP[s.color];
+                    return (
+                      <button key={i} onClick={() => goToStatus(s.label)}
+                        className={`flex flex-col items-start p-3.5 rounded-xl border transition-all hover:shadow-md hover:-translate-y-0.5 cursor-pointer ${c.card}`}>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2.5 ${c.icon}`}><Icon className="w-4 h-4" /></div>
+                        <div className={`text-xl mb-0.5 ${c.badge}`} style={{ fontWeight: 800, lineHeight: 1 }}>{s.count}</div>
+                        <div className="text-slate-500 text-xs leading-tight">{s.label}</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Follow-Ups + Quick Actions */}
+              <div className="grid lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 shadow-sm">
+                  <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                      <h2 className="text-slate-800 text-sm" style={{ fontWeight: 600 }}>Today's Follow-Ups</h2>
+                      <p className="text-slate-400 text-xs mt-0.5">Scheduled callbacks & pending actions</p>
+                    </div>
+                    <Link to="/recruiter/resumes" className="text-xs text-green-600 flex items-center gap-1" style={{ fontWeight: 500 }}>
+                      View all <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                  <div className="divide-y divide-slate-50">
+                    {followUps.map((f: any, i: number) => (
+                      <div key={i} className="px-5 py-4 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                        <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0">
+                          <span className="text-green-700 text-sm" style={{ fontWeight: 600 }}>
+                            {(f.name || f.candidateName || '').split(' ').map((n: string) => n[0]).join('')}
+                          </span>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-slate-700 text-sm truncate" style={{ fontWeight: 500 }}>{f.name || f.candidateName}</p>
+                          <p className="text-slate-400 text-xs">{f.skills}</p>
+                        </div>
+                        <div className="text-right">
+                          <div className="flex items-center gap-1 text-slate-400 text-xs mb-1">
+                            <Clock className="w-3 h-3" />{f.time || f.followUpDate || ''}
+                          </div>
+                          <span className="bg-amber-100 text-amber-700 text-xs px-2 py-0.5 rounded-full" style={{ fontWeight: 500 }}>{f.status}</span>
+                        </div>
+                        <Link to={`/recruiter/candidate/${f.candidateId || f._id || '1'}`}
+                          className="ml-2 px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 flex-shrink-0">
+                          <Phone className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    ))}
+                    {followUps.length === 0 && <div className="px-5 py-8 text-center text-slate-400 text-sm">No follow-ups due</div>}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+                    <h2 className="text-slate-800 text-sm mb-4" style={{ fontWeight: 600 }}>Quick Actions</h2>
+                    <div className="space-y-2">
+                      {[
+                        { label: 'Add New Candidate',  href: '/recruiter/add',          icon: UserPlus,     color: 'text-green-600' },
+                        { label: 'Create Job (JR)',     href: '/recruiter/jobs/new',     icon: Briefcase,    color: 'text-teal-600' },
+                        { label: 'Joining Form',        href: '/recruiter/joining',      icon: FileCheck,    color: 'text-emerald-600' },
+                        { label: 'Walk-In Queue',       href: '/recruiter/walkin-queue', icon: ListChecks,   color: 'text-emerald-600' },
+                        { label: 'Interview Schedule',  href: '/recruiter/interviews',   icon: CalendarCheck,color: 'text-violet-600' },
+                        { label: 'ATS Resume Scanner',  href: '/recruiter/scan',         icon: ScanLine,     color: 'text-amber-600' },
+                        { label: 'Send Mail',           href: '/email-center',           icon: Mail,         color: 'text-blue-600' },
+                        { label: 'View All Resumes',    href: '/recruiter/resumes',      icon: FileText,     color: 'text-slate-600' },
+                      ].map((action, i) => {
+                        const Icon = action.icon;
+                        return (
+                          <Link key={i} to={action.href}
+                            className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-slate-50 transition-colors group">
+                            <Icon className={`w-4 h-4 ${action.color}`} />
+                            <span className="text-slate-600 text-sm group-hover:text-slate-800">{action.label}</span>
+                            <ArrowRight className="w-3 h-3 text-slate-300 ml-auto group-hover:text-slate-400" />
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  <div className="bg-green-600 rounded-xl p-5 text-white">
+                    <div className="flex items-center gap-2 mb-3">
+                      <TrendingUp className="w-4 h-4" />
+                      <span className="text-sm" style={{ fontWeight: 600 }}>Daily Target</span>
+                    </div>
+                    <div className="mb-2" style={{ fontWeight: 700, fontSize: '1.5rem' }}>
+                      {recMetrics.todayCalls} / {recMetrics.dailyTarget}
+                    </div>
+                    <p className="text-green-200 text-xs mb-3">Calls made today</p>
+                    <div className="bg-green-500 rounded-full h-2">
+                      <div className="bg-white rounded-full h-2"
+                        style={{ width: `${Math.min(100, Math.round((recMetrics.todayCalls / recMetrics.dailyTarget) * 100))}%` }} />
+                    </div>
+                    <p className="text-green-200 text-xs mt-2">
+                      {Math.round((recMetrics.todayCalls / recMetrics.dailyTarget) * 100)}% of daily target
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Activity Feed */}
+              <div className="bg-white rounded-xl border border-slate-100 shadow-sm">
+                <div className="px-5 py-4 border-b border-slate-100">
+                  <h2 className="text-slate-800 text-sm" style={{ fontWeight: 600 }}>Recent Activity</h2>
+                </div>
+                <div className="px-5 py-2 divide-y divide-slate-50">
+                  {recentActivity.map((a: any, i: number) => (
+                    <div key={i} className="py-3 flex items-center gap-3">
+                      <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 text-xs ${activityColors[a.type] || 'bg-slate-100 text-slate-500'}`}
+                        style={{ fontWeight: 700 }}>•</div>
+                      <p className="text-slate-600 text-sm flex-1">{a.text}</p>
+                      <span className="text-slate-400 text-xs flex-shrink-0">{a.time}</span>
+                    </div>
+                  ))}
+                  {recentActivity.length === 0 && <p className="py-6 text-center text-slate-400 text-sm">No recent activity</p>}
+                </div>
+              </div>
+            </>
+          )}
+        </>
+      )}
+
+      {/* ══════════════ TAB: TEAM ══════════════ */}
+      {activeTab === 'team' && (
+        <>
+          {/* Team Summary Metrics */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Calls Today',    value: totalCalls,      icon: Phone,        color: 'blue',    href: '/recruiter/resumes' },
+              { label: 'Interviews Scheduled', value: totalInterviews,  icon: Calendar,     color: 'violet',  href: '/recruiter/interviews' },
+              { label: 'Pending Follow-Ups',   value: totalFollowUps,   icon: AlertCircle,  color: 'amber',   href: '/tl/follow-ups' },
+              { label: 'Active Recruiters',    value: `${teamSummary.activeRecruiters || 0}`, icon: Users, color: 'emerald', href: '' },
+            ].map((m, i) => {
+              const Icon = m.icon;
+              const colors: Record<string, string> = {
+                blue: 'bg-green-50 text-green-600', violet: 'bg-violet-50 text-violet-600',
+                amber: 'bg-amber-50 text-amber-600', emerald: 'bg-emerald-50 text-emerald-600',
+              };
+              const card = (
+                <>
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${colors[m.color]}`}><Icon className="w-4 h-4" /></div>
+                  <div className="text-slate-800 mb-0.5" style={{ fontWeight: 700, fontSize: '1.75rem' }}>{m.value}</div>
+                  <div className="text-slate-500 text-sm">{m.label}</div>
+                </>
+              );
+              return m.href ? (
+                <button key={i} onClick={() => navigate(m.href)}
+                  className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm text-left hover:shadow-md hover:-translate-y-0.5 transition-all w-full">{card}</button>
+              ) : (
+                <div key={i} className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">{card}</div>
+              );
+            })}
+          </div>
+
+          <div className="grid lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-8">
+              <h2 className="text-slate-800 text-sm" style={{ fontWeight: 600 }}>Team Performance — Today</h2>
+              
+              {teams.map(tl => (
+                <div key={tl.tlId} className="space-y-4">
+                  {/* TL Header Card */}
+                  <div className="bg-green-600 rounded-xl p-4 text-white flex items-center justify-between shadow-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                        <Users className="w-5 h-5 text-white" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold">{tl.tlName} <span className="font-normal opacity-80">(Team Leader)</span></p>
+                        <p className="text-xs text-green-100">{tl.recruiters.length} Recruiters · {tl.stats.totalCalls} Calls · {tl.stats.totalJoined} Joined</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-green-100">Team Conversion</p>
+                      <p className="text-sm font-bold">{tl.stats.totalCalls > 0 ? Math.round((tl.stats.totalInterviews / tl.stats.totalCalls) * 100) : 0}%</p>
+                    </div>
+                  </div>
+
+                  {/* Recruiters in this team */}
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {tl.recruiters.map(r => {
+                      const pct = Math.round((r.calls / r.target) * 100);
+                      const sc = TL_STATUS_COLORS[r.status] || TL_STATUS_COLORS.offline;
+                      return (
+                        <div key={r.id} className="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+                          <div className="flex items-start justify-between gap-3 mb-3">
+                            <div className="flex items-center gap-3">
+                              <div className="relative">
+                                <div className="w-9 h-9 bg-green-100 rounded-full flex items-center justify-center">
+                                  <span className="text-green-700 text-xs" style={{ fontWeight: 600 }}>
+                                    {r.name.split(' ').map((n: string) => n[0]).join('')}
+                                  </span>
+                                </div>
+                                <div className={`absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full border-2 border-white ${sc.dot}`} />
+                              </div>
+                              <div>
+                                <p className="text-slate-700 text-xs" style={{ fontWeight: 600 }}>{r.name}</p>
+                                <p className="text-slate-400 text-[10px]">{r.employeeId}</p>
+                              </div>
+                            </div>
+                            <span className={`text-[10px] px-2 py-0.5 rounded-full capitalize ${sc.badge}`} style={{ fontWeight: 500 }}>{r.status}</span>
+                          </div>
+                          <div className="mb-3">
+                            <div className="flex justify-between text-[10px] text-slate-500 mb-1">
+                              <span>Calls: {r.calls}/{r.target}</span>
+                              <span style={{ fontWeight: 500 }}>{pct}%</span>
+                            </div>
+                            <div className="bg-slate-100 rounded-full h-1.5">
+                              <div className={`h-1.5 rounded-full transition-all ${pct >= 80 ? 'bg-emerald-500' : pct >= 50 ? 'bg-green-500' : 'bg-amber-500'}`}
+                                style={{ width: `${Math.min(pct, 100)}%` }} />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2 text-center pt-2 border-t border-slate-50">
+                            <div>
+                              <div className="text-slate-700 text-xs font-bold">{r.calls}</div>
+                              <div className="text-slate-400 text-[9px]">Calls</div>
+                            </div>
+                            <div>
+                              <div className="text-violet-600 text-xs font-bold">{r.interviews}</div>
+                              <div className="text-slate-400 text-[9px]">Intv</div>
+                            </div>
+                            <div>
+                              <div className={`text-xs font-bold ${r.followUps > 5 ? 'text-red-500' : 'text-amber-600'}`}>{r.followUps}</div>
+                              <div className="text-slate-400 text-[9px]">F-Up</div>
+                            </div>
+                            <div className="border-l border-slate-50 pl-2">
+                              <div className="text-emerald-600 text-xs font-bold">{r.joinedCount}</div>
+                              <div className="text-slate-400 text-[9px]">Joined</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
+              {teams.length === 0 && (
+                <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-8 text-center text-slate-400 text-sm">No teams found</div>
+              )}
+            </div>
+
+
+            <div className="space-y-4">
+              <div className="bg-green-600 rounded-xl p-5 text-white">
+                <div className="flex items-center gap-2 mb-4">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="text-sm" style={{ fontWeight: 600 }}>Team Health</span>
+                </div>
+                <div className="space-y-3">
+                  {[
+                    { label: 'Avg calls/recruiter',    value: teamSummary.activeRecruiters ? Math.round(totalCalls / teamSummary.activeRecruiters) : 0 },
+                    { label: 'Total active members',   value: teamSummary.activeRecruiters || 0 },
+                    { label: 'Interviews / 100 calls', value: totalCalls > 0 ? Math.round((totalInterviews / totalCalls) * 100) : 0 },
+                  ].map((s, i) => (
+                    <div key={i} className="flex justify-between text-sm">
+                      <span className="text-green-200">{s.label}</span>
+                      <span className="text-white" style={{ fontWeight: 700 }}>{s.value}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* ══════════════ TAB: TEAM STRUCTURE ══════════════ */}
+      {activeTab === 'structure' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-6">
+            <h2 className="text-slate-800 text-lg mb-4" style={{ fontWeight: 600 }}>Team Structure Management</h2>
+            <p className="text-slate-500 text-sm mb-6">Manage Team Leaders and assign recruiters to their teams.</p>
+            {/* TeamStructureManager component will go here */}
+            <TeamStructureManager />
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════ TAB: ANALYTICS ══════════════ */}
+      {activeTab === 'analytics' && (
+        <>
+          {/* KPI Cards */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            {[
+              { label: 'Total Placements', value: kpis.totalPlacements ?? '—', sub: 'This month',  trend: kpis.placementsTrend || '+0%',  up: (kpis.placementsTrend || '').startsWith('+'),  icon: Users,      color: 'blue',    href: '/manager/reports' },
+              { label: 'Interview → Hire', value: kpis.conversionRate ?? '—',  sub: 'Conversion', trend: kpis.conversionTrend || '+0%', up: (kpis.conversionTrend || '').startsWith('+'),  icon: TrendingUp, color: 'emerald', href: '/manager/reports' },
+              { label: 'Revenue Earned',   value: kpis.revenue ? fmt(kpis.revenue) : '—', sub: 'This month', trend: kpis.revenueTrend || '+0%', up: (kpis.revenueTrend || '').startsWith('+'), icon: DollarSign, color: 'violet',  href: '/revenue' },
+              { label: 'Avg Time to Hire', value: kpis.avgTimeToHire ?? '—',   sub: 'From source', trend: kpis.timeToHireTrend || '0d', up: (kpis.timeToHireTrend || '').startsWith('-'),  icon: Calendar,   color: 'amber',   href: '/manager/reports' },
+            ].map((m, i) => {
+              const Icon = m.icon;
+              const bg: Record<string, string> = {
+                blue: 'bg-green-50 text-green-600', emerald: 'bg-emerald-50 text-emerald-600',
+                violet: 'bg-violet-50 text-violet-600', amber: 'bg-amber-50 text-amber-600',
+              };
+              return (
+                <button key={i} onClick={() => navigate(m.href)}
+                  className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm text-left hover:shadow-md hover:-translate-y-0.5 transition-all w-full">
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center mb-3 ${bg[m.color]}`}><Icon className="w-4 h-4" /></div>
+                  <div className="text-slate-800 mb-0.5" style={{ fontWeight: 700, fontSize: '1.5rem' }}>{m.value}</div>
+                  <div className="text-slate-500 text-xs mb-1.5">{m.sub}</div>
+                  <div className={`text-xs flex items-center gap-1 ${m.up ? 'text-emerald-600' : 'text-red-500'}`} style={{ fontWeight: 500 }}>
+                    {m.up ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
+                    {m.trend} vs last month
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Charts Row 1: Recruitment Funnel + Revenue Trend */}
+          <div className="grid lg:grid-cols-2 gap-5">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+              <h3 className="text-slate-800 text-sm mb-4" style={{ fontWeight: 600 }}>Recruitment Funnel (6 months)</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <BarChart data={conversionData} barSize={16} barCategoryGap="25%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ fontSize: 12, border: '1px solid #E2E8F0', borderRadius: 8 }} />
+                  <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="resumes"    name="Resumes"    fill="#BBF7D0" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="interviews" name="Interviews" fill="#4ADE80" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="hired"      name="Hired"      fill="#16A34A" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+              <h3 className="text-slate-800 text-sm mb-4" style={{ fontWeight: 600 }}>Revenue Trend (6 months)</h3>
+              <ResponsiveContainer width="100%" height={220}>
+                <LineChart data={revenueData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <YAxis tickFormatter={v => fmt(v as number)} tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v) => [fmt(v as number), 'Revenue']} contentStyle={{ fontSize: 12, border: '1px solid #E2E8F0', borderRadius: 8 }} />
+                  <Line type="monotone" dataKey="revenue" stroke="#16A34A" strokeWidth={2.5} dot={{ fill: '#16A34A', r: 4 }} activeDot={{ r: 6 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+
+          {/* Charts Row 2: Recruiter Productivity + Source Distribution */}
+          <div className="grid lg:grid-cols-3 gap-5">
+            <div className="lg:col-span-2 bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+              <h3 className="text-slate-800 text-sm mb-4" style={{ fontWeight: 600 }}>Recruiter Productivity — Today</h3>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={recruiterData} barSize={20} barCategoryGap="30%">
+                  <CartesianGrid strokeDasharray="3 3" stroke="#F1F5F9" />
+                  <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#94A3B8' }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={{ fontSize: 12, border: '1px solid #E2E8F0', borderRadius: 8 }} />
+                  <Legend iconSize={8} wrapperStyle={{ fontSize: 11 }} />
+                  <Bar dataKey="calls"      name="Calls"      fill="#BBF7D0" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="interviews" name="Interviews" fill="#4ADE80" radius={[3, 3, 0, 0]} />
+                  <Bar dataKey="placed"     name="Placed"     fill="#16A34A" radius={[3, 3, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+
+            <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5">
+              <h3 className="text-slate-800 text-sm mb-4" style={{ fontWeight: 600 }}>Candidate Source</h3>
+              <ResponsiveContainer width="100%" height={160}>
+                <PieChart>
+                  <Pie data={mgrSourceData} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
+                    {mgrSourceData.map((entry, index) => <Cell key={index} fill={entry.color} />)}
+                  </Pie>
+                  <Tooltip contentStyle={{ fontSize: 12, border: '1px solid #E2E8F0', borderRadius: 8 }} />
+                </PieChart>
+              </ResponsiveContainer>
+              <div className="space-y-2 mt-2">
+                {mgrSourceData.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: s.color }} />
+                      <span className="text-slate-600">{s.name}</span>
+                    </div>
+                    <span className="text-slate-500" style={{ fontWeight: 500 }}>{s.value}%</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Link to full reports */}
+          <div className="flex justify-end">
+            <Link to="/manager/reports" className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700" style={{ fontWeight: 500 }}>
+              <BarChart2 className="w-4 h-4" /> Full Analytics Report
+            </Link>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
