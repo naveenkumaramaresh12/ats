@@ -10,7 +10,13 @@ exports.login = async (req, res, next) => {
       return res.status(400).json({ message: 'Employee ID and password are required' });
     }
 
-    const user = await User.findOne({ employeeId });
+    const identifier = employeeId.trim();
+    const user = await User.findOne({
+      $or: [
+        { employeeId: identifier },
+        { email: identifier.toLowerCase() }
+      ]
+    });
     if (!user) {
       return res.status(401).json({ message: 'Invalid credentials' });
     }

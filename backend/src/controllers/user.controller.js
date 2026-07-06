@@ -33,12 +33,15 @@ exports.list = async (req, res, next) => {
 // POST /api/users
 exports.create = async (req, res, next) => {
   try {
-    const { name, email, role, isWFH, password } = req.body;
+    const { name, email, role, isWFH, password, noEmployeeId } = req.body;
     if (!name || !email || !role || !password) {
       return res.status(400).json({ message: 'All required fields must be provided' });
     }
 
-    const employeeId = await generateEmployeeId(Employee, User);
+    let employeeId;
+    if (noEmployeeId !== true) {
+      employeeId = await generateEmployeeId(Employee, User);
+    }
     const user = await User.create({ name, email, employeeId, role, isWFH: isWFH || false, password });
 
     await createLog({

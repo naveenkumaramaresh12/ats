@@ -202,6 +202,35 @@ export function LoginPage() {
                 {loading ? 'Signing in...' : 'Sign In'}
               </button>
             </form>
+
+            {/* Dev Mode Shortcuts (Only visible on localhost) */}
+            {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+              <div className="mt-6 pt-5 border-t border-slate-100">
+                <p className="text-xs text-slate-400 mb-3 text-center font-semibold">
+                  DEVELOPER SHORTCUTS (Localhost Only)
+                </p>
+                <div className="flex flex-wrap gap-2 justify-center">
+                  {[
+                    { label: 'Admin', id: 'EMP001', pw: 'Password2026!' },
+                    { label: 'TL', id: 'EMP006', pw: 'password123' },
+                    { label: 'Recruiter', id: 'EMP002', pw: 'password123' }
+                  ].map((dev, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setLoginMode('employee');
+                        setEmployeeId(dev.id);
+                        setPassword(dev.pw);
+                      }}
+                      className="text-xs px-2.5 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-md font-medium"
+                    >
+                      {dev.label} ({dev.id})
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <p className="text-center mt-6 text-sm text-slate-500">

@@ -309,7 +309,7 @@ export function FaceVerificationModal({
           )}
 
           {/* Footer controls */}
-          <div className="flex gap-2.5 pt-2 justify-center">
+          <div className="flex gap-2.5 pt-2 justify-center flex-wrap">
             <button
               onClick={() => {
                 if (stream) stream.getTracks().forEach(track => track.stop());
@@ -319,6 +319,17 @@ export function FaceVerificationModal({
             >
               {preventCancel ? 'Sign Out' : 'Cancel'}
             </button>
+            {(window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && (
+              <button
+                onClick={() => {
+                  if (stream) stream.getTracks().forEach(track => track.stop());
+                  onSuccess([], '');
+                }}
+                className="px-5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-sm font-medium transition-colors"
+              >
+                Bypass (Dev Mode)
+              </button>
+            )}
           </div>
         </div>
 

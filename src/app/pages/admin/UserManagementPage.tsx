@@ -101,6 +101,7 @@ export function UserManagementPage() {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [generatedEID, setGeneratedEID] = useState('');
+  const [noEmployeeId, setNoEmployeeId] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -167,10 +168,11 @@ export function UserManagementPage() {
           isWFH: form.isWFH,
           password: form.password,
           pseudoName: form.pseudoName,
-          employeeId: generatedEID,
+          employeeId: noEmployeeId ? undefined : generatedEID,
+          noEmployeeId: noEmployeeId,
         });
         const newUser: SystemUser = {
-          id: generatedEID || res.employeeId || res.user?.employeeId || res._id || '',
+          id: noEmployeeId ? (res.email || form.email) : (generatedEID || res.employeeId || res.user?.employeeId || res._id || ''),
           name: form.name,
           email: form.email,
           role: form.role,
@@ -189,6 +191,7 @@ export function UserManagementPage() {
         setEditUser(null);
         setForm({ ...EMPTY_FORM });
         setGeneratedEID('');
+        setNoEmployeeId(false);
       }, 1200);
     } catch (err) {
       console.error('Failed to save user:', err);
@@ -443,7 +446,7 @@ export function UserManagementPage() {
               <h3 className="text-slate-800" style={{ fontWeight: 700 }}>
                 {editUser ? 'Edit User' : 'Add New User'}
               </h3>
-              <button onClick={() => { setShowModal(false); setEditUser(null); }} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
+              <button onClick={() => { setShowModal(false); setEditUser(null); setNoEmployeeId(false); }} className="p-1.5 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -474,15 +477,34 @@ export function UserManagementPage() {
                   </div>
                 </div>
               ) : (
-                <div>
-                  <label className="block text-xs text-slate-500 uppercase tracking-wide mb-1.5" style={{ fontWeight: 600 }}>Employee ID (Auto-Generated)</label>
-                  <div className="flex items-center gap-2 px-3 py-2.5 border border-dashed border-green-200 rounded-lg bg-green-50">
-                    <Lock className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                    <span className={`text-sm font-mono ${generatedEID ? 'text-green-700 font-semibold' : 'text-slate-400 italic'}`}>
-                      {generatedEID || 'Enter name and role to generate'}
-                    </span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <label className="block text-xs text-slate-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>Employee ID</label>
+                    <label className="flex items-center gap-1.5 cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={noEmployeeId}
+                        onChange={e => setNoEmployeeId(e.target.checked)}
+                        className="rounded text-green-600 focus:ring-green-500 border-slate-300 w-3.5 h-3.5"
+                      />
+                      <span className="text-xs text-slate-500 font-semibold">Login via Email only</span>
+                    </label>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Format: [ROLE]-[SEQ]-[INITIALS]</p>
+                  {!noEmployeeId ? (
+                    <>
+                      <div className="flex items-center gap-2 px-3 py-2.5 border border-dashed border-green-200 rounded-lg bg-green-50">
+                        <Lock className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
+                        <span className={`text-sm font-mono ${generatedEID ? 'text-green-700 font-semibold' : 'text-slate-400 italic'}`}>
+                          {generatedEID || 'Enter name and role to generate'}
+                        </span>
+                      </div>
+                      <p className="text-xs text-slate-500">Format: [ROLE]-[SEQ]-[INITIALS]</p>
+                    </>
+                  ) : (
+                    <div className="flex items-center gap-2 px-3 py-2.5 border border-slate-200 rounded-lg bg-slate-50 text-slate-500 text-xs font-medium">
+                      No Employee ID. User will log in using their email address.
+                    </div>
+                  )}
                 </div>
               )}
               <div>
@@ -566,7 +588,7 @@ export function UserManagementPage() {
                 {editUser ? 'Save Changes' : 'Add User'}
               </button>
               <button
-                onClick={() => { setShowModal(false); setEditUser(null); }}
+                onClick={() => { setShowModal(false); setEditUser(null); setNoEmployeeId(false); }}
                 className="px-4 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50"
               >
                 Cancel
