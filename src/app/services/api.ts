@@ -399,6 +399,13 @@ class ApiService {
     return this.request<any>(`/users/${id}/status`, { method: 'PATCH' });
   }
 
+  async resetUserPassword(id: string, data: { password: string }) {
+    return this.request<any>(`/users/${id}/reset-password`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
   // ─── Attendance ───
   async getTodayAttendance() {
     return this.request<any>('/attendance/today');

@@ -59,11 +59,18 @@ exports.create = async (req, res, next) => {
 // PUT /api/users/:id
 exports.update = async (req, res, next) => {
   try {
+    const mongoose = require('mongoose');
     const updates = { ...req.body };
-    // Don't allow password update through this endpoint
     delete updates.password;
 
-    const user = await User.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
+    let user;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      user = await User.findByIdAndUpdate(req.params.id, updates, { new: true, runValidators: true });
+    }
+    if (!user) {
+      user = await User.findOneAndUpdate({ employeeId: req.params.id }, updates, { new: true, runValidators: true });
+    }
+
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     await createLog({
@@ -81,7 +88,15 @@ exports.update = async (req, res, next) => {
 // DELETE /api/users/:id
 exports.remove = async (req, res, next) => {
   try {
-    const user = await User.findByIdAndDelete(req.params.id);
+    const mongoose = require('mongoose');
+    let user;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      user = await User.findByIdAndDelete(req.params.id);
+    }
+    if (!user) {
+      user = await User.findOneAndDelete({ employeeId: req.params.id });
+    }
+
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     await createLog({
@@ -99,7 +114,15 @@ exports.remove = async (req, res, next) => {
 // PATCH /api/users/:id/status
 exports.toggleStatus = async (req, res, next) => {
   try {
-    const user = await User.findById(req.params.id);
+    const mongoose = require('mongoose');
+    let user;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      user = await User.findById(req.params.id);
+    }
+    if (!user) {
+      user = await User.findOne({ employeeId: req.params.id });
+    }
+
     if (!user) return res.status(404).json({ message: 'User not found' });
 
     user.status = user.status === 'Active' ? 'Suspended' : 'Active';
@@ -112,6 +135,44 @@ exports.toggleStatus = async (req, res, next) => {
     });
 
     res.json(user);
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/users/:id/reset-password
+exports.resetPassword = async (req, res, next) => {
+  try {
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: Only administrators can reset user passwords.' });
+    }
+
+    const { password } = req.body;
+    if (!password || password.length < 6) {
+      return res.status(400).json({ message: 'Password must be at least 6 characters long.' });
+    }
+
+    const mongoose = require('mongoose');
+    let user = null;
+    if (mongoose.Types.ObjectId.isValid(req.params.id)) {
+      user = await User.findById(req.params.id);
+    }
+    if (!user) {
+      user = await User.findOne({ employeeId: req.params.id });
+    }
+
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    user.password = password;
+    await user.save();
+
+    await createLog({
+      type: 'edit', user: req.user._id, userName: req.user.name,
+      role: req.user.role, action: `Reset password for user: ${user.name} (${user.employeeId || 'Email-only'})`,
+      target: user._id.toString(), ip: req.ip,
+    });
+
+    res.json({ message: 'Password reset successfully' });
   } catch (err) {
     next(err);
   }

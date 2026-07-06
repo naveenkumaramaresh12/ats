@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
-import { UserPlus, Search, Edit3, Trash2, CheckCircle2, X, Shield, Wifi, Monitor, Eye, EyeOff, Loader2, ChevronRight, Mail, Calendar, Clock, Lock } from 'lucide-react';
+import { UserPlus, Search, Edit3, Trash2, CheckCircle2, X, Shield, Wifi, Monitor, Eye, EyeOff, Loader2, ChevronRight, Mail, Calendar, Clock, Lock, Key } from 'lucide-react';
 import api from '../../services/api';
 
 type Role = 'recruiter' | 'tl' | 'manager' | 'admin' | 'spoc';
@@ -102,6 +102,10 @@ export function UserManagementPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [generatedEID, setGeneratedEID] = useState('');
   const [noEmployeeId, setNoEmployeeId] = useState(false);
+  const [resetPassUser, setResetPassUser] = useState<SystemUser | null>(null);
+  const [newPassword, setNewPassword] = useState('');
+  const [resetSuccess, setResetSuccess] = useState(false);
+  const [resetError, setResetError] = useState('');
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -377,6 +381,15 @@ export function UserManagementPage() {
                         <Eye className="w-3.5 h-3.5" />
                       </button>
                       <button
+                        onClick={() => {
+                          setResetPassUser(user);
+                        }}
+                        className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-md"
+                        title="Reset Password"
+                      >
+                        <Key className="w-3.5 h-3.5" />
+                      </button>
+                      <button
                         onClick={() => handleEdit(user)}
                         className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-md"
                       >
@@ -430,12 +443,88 @@ export function UserManagementPage() {
                 {user.isWFH && <span className="text-xs text-green-600">WFH</span>}
                 <div className="ml-auto flex gap-1.5">
                   <button onClick={() => navigate(`/admin/employee/${user.id}`)} className="text-xs text-blue-600 px-2 py-1 bg-blue-50 rounded-md" style={{ fontWeight: 500 }}>Profile</button>
+                  <button onClick={() => setResetPassUser(user)} className="text-xs text-amber-600 px-2 py-1 bg-amber-50 rounded-md" style={{ fontWeight: 500 }}>Reset Pass</button>
                   <button onClick={() => handleEdit(user)} className="text-xs text-green-600 px-2 py-1 bg-green-50 rounded-md" style={{ fontWeight: 500 }}>Edit</button>
                 </div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Reset Password Modal */}
+        {resetPassUser && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
+            <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-slate-800 font-bold">Reset Password</h3>
+                <button onClick={() => { setResetPassUser(null); setNewPassword(''); setResetError(''); }} className="p-1 text-slate-400 hover:text-slate-600 rounded-lg">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {resetSuccess && (
+                <div className="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2 text-emerald-700 text-xs">
+                  <CheckCircle2 className="w-4 h-4" /> Password reset successfully!
+                </div>
+              )}
+
+              {resetError && (
+                <div className="mb-4 bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-red-600 text-xs animate-pulse">
+                  {resetError}
+                </div>
+              )}
+
+              <p className="text-xs text-slate-500 mb-4">
+                Enter a new password for <strong className="text-slate-700">{resetPassUser.name}</strong>.
+              </p>
+
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[10px] text-slate-500 uppercase tracking-wide mb-1" style={{ fontWeight: 600 }}>New Password *</label>
+                  <input
+                    type="password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                    placeholder="At least 6 characters"
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-green-400"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-5">
+                <button
+                  onClick={async () => {
+                    if (!newPassword || newPassword.length < 6) {
+                      setResetError('Password must be at least 6 characters long.');
+                      return;
+                    }
+                    try {
+                      setResetError('');
+                      await api.resetUserPassword(resetPassUser.id, { password: newPassword });
+                      setResetSuccess(true);
+                      setTimeout(() => {
+                        setResetSuccess(false);
+                        setResetPassUser(null);
+                        setNewPassword('');
+                      }, 1500);
+                    } catch (err: any) {
+                      setResetError(err.message || 'Failed to reset password.');
+                    }
+                  }}
+                  className="flex-1 py-2 bg-green-600 hover:bg-green-700 text-white text-xs rounded-xl font-bold"
+                >
+                  Reset Password
+                </button>
+                <button
+                  onClick={() => { setResetPassUser(null); setNewPassword(''); setResetError(''); }}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 text-xs rounded-xl hover:bg-slate-50"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Add/Edit User Modal */}
