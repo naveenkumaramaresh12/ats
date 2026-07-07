@@ -1,4 +1,4 @@
-const rawApiBase = (import.meta.env.VITE_API_URL || '/api').trim();
+const rawApiBase = '/api';
 
 function normalizeApiBase(value: string) {
   // Local proxy mode in dev
@@ -182,7 +182,7 @@ class ApiService {
   }
 
   getExportUrl(params: Record<string, string> = {}) {
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    const base = window.location.origin;
     const query = new URLSearchParams(params).toString();
     return `${base}/api/candidates/export${query ? `?${query}` : ''}`;
   }
@@ -191,7 +191,7 @@ class ApiService {
     const fd = new FormData();
     fd.append('file', file);
     fd.append('direct', 'true');
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    const base = window.location.origin;
     const token = localStorage.getItem('ats_token');
     const res = await fetch(`${base}/api/candidates/import`, {
       method: 'POST',

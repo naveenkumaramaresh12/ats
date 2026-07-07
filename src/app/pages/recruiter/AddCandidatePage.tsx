@@ -11,7 +11,7 @@ import { calculateAge } from '../../utils/ageCalculator';
 import { ExtractionPreviewModal } from '../../components/ExtractionPreviewModal';
 import { DepartmentDropdown } from '../../components/DepartmentDropdown';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_BASE = window.location.origin;
 
 // ─── Location Data ────────────────────────────────────────────
 const REGIONS = [

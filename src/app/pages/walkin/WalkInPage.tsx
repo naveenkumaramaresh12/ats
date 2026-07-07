@@ -8,7 +8,7 @@ import logoImg from '../../../assets/Logo.jpeg';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_BASE = window.location.origin;
 
 // ─── Static Recruiter List ────────────────────────────────────
 const STATIC_RECRUITERS = [

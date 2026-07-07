@@ -10,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { calculateAge } from '../../utils/ageCalculator';
 
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+const API_BASE = window.location.origin;
 
 // ─── Constants ──────────────────────────────────────────────────
 const EMAIL_TEMPLATES = [

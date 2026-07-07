@@ -80,7 +80,7 @@ export function ExcelCandidateImportPage() {
       fd.append('file', file);
       fd.append('preview', 'true');
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const API_URL = window.location.origin;
       const response = await fetch(`${API_URL}/api/candidates/import`, {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${api.getToken()}` },
@@ -108,7 +108,7 @@ export function ExcelCandidateImportPage() {
         status: p.status
       }));
 
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+      const API_URL = window.location.origin;
       const response = await fetch(`${API_URL}/api/candidates/import`, {
         method: 'POST',
         headers: { 

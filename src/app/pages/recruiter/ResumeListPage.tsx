@@ -225,7 +225,7 @@ export function ResumeListPage() {
       alert('No candidates in the current view have resumes uploaded.');
       return;
     }
-    const base = import.meta.env.VITE_API_URL || 'http://localhost:5001';
+    const base = window.location.origin;
     const content = withResumes.map((c: any, i: number) =>
       `${i + 1}. ${c.name} — ${base}${c.resumePath}`
     ).join('\n');
