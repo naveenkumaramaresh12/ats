@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import { useAuth, ROLE_DASHBOARD } from '../../context/AuthContext';
 import api from '../../services/api';
 import logoImg from '../../../assets/Logo.jpeg';
 import { FaceVerificationModal } from '../../components/attendance/FaceVerificationModal';
+import * as faceapi from '@vladmandic/face-api';
 
 export function LoginPage() {
   const [loginMode, setLoginMode] = useState<'employee' | 'walkin'>('employee');
@@ -18,6 +19,26 @@ export function LoginPage() {
   const [tempAuthData, setTempAuthData] = useState<{ token: string; user: any } | null>(null);
   const { login } = useAuth();
   const navigate = useNavigate();
+
+  // Background pre-load of face api models
+  useEffect(() => {
+    const loadModels = async () => {
+      try {
+        if (!faceapi.nets.tinyFaceDetector.isLoaded) {
+          const modelUrl = '/models';
+          await Promise.all([
+            faceapi.nets.tinyFaceDetector.loadFromUri(modelUrl),
+            faceapi.nets.faceLandmark68Net.loadFromUri(modelUrl),
+            faceapi.nets.faceRecognitionNet.loadFromUri(modelUrl)
+          ]);
+          console.log('Face biometrics models pre-loaded in the background successfully.');
+        }
+      } catch (err) {
+        console.error('Failed to pre-load face biometrics models:', err);
+      }
+    };
+    loadModels();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
