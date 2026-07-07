@@ -99,14 +99,14 @@ export function FaceVerificationModal({
         // Run face detection on the current webcam video frame
         const detection = await faceapi.detectSingleFace(
           videoRef.current,
-          new faceapi.TinyFaceDetectorOptions({ inputSize: 224, scoreThreshold: 0.5 })
+          new faceapi.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.4 })
         ).withFaceLandmarks().withFaceDescriptor();
 
         if (detection) {
           const liveDescriptor = Array.from(detection.descriptor) as number[];
 
           setProgress(prev => {
-            const nextProgress = prev + 10;
+            const nextProgress = prev + 50; // Verifies in 2 frames (0.4s) instead of 10
             if (nextProgress >= 100) {
               clearInterval(detectionInterval);
               active = false;
