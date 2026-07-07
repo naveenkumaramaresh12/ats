@@ -105,7 +105,11 @@ export function Sidebar({ onClose }: SidebarProps) {
   const filteredNav = NAV_ITEMS.filter(item => item.roles.includes(user.role));
 
   const handleLogout = () => {
-    setShowCheckOutFaceModal(true);
+    if (user.role === 'admin') {
+      completeLogout();
+    } else {
+      setShowCheckOutFaceModal(true);
+    }
   };
 
   const completeLogout = () => {
