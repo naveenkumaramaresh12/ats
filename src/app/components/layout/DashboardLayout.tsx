@@ -101,23 +101,7 @@ export function DashboardLayout() {
     });
   }, [user]);
 
-  // Daily candidate database auto-download for Admin users
-  useEffect(() => {
-    if (user && user.role === 'admin') {
-      const today = new Date().toISOString().split('T')[0];
-      const lastAutoDownload = localStorage.getItem(`last_auto_download_${user.id}`);
-      if (lastAutoDownload !== today) {
-        api.exportCandidatesExcel()
-          .then(() => {
-            localStorage.setItem(`last_auto_download_${user.id}`, today);
-            console.log('Daily database export triggered and saved successfully.');
-          })
-          .catch((err) => {
-            console.error('Failed to trigger daily database export:', err);
-          });
-      }
-    }
-  }, [user]);
+
 
   // Reminder popup — show once per day after 90 seconds if not marked
   useEffect(() => {
