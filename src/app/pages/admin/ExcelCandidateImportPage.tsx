@@ -150,8 +150,30 @@ export function ExcelCandidateImportPage() {
   };
 
   const downloadTemplate = () => {
-    const template = `Name,Email ID,Phone Number,Job Title,Current Location,Total Experience,Curr. Company name,Curr. Company Designation,Department,Key Skills,Annual Salary,Notice period/ Availability to join,Resume Headline,Gender,Date of Birth,Under Graduation degree,UG University/institute Name,UG Graduation year,Post graduation degree,PG university/institute name,PG graduation year,Marital Status,Home Town/City,Pin Code,Work permit for USA,Permanent Address\nRaj Kumar,raj@email.com,9876543210,Software Engineer,Bangalore,5,TechCorp,Senior Developer,IT,"React, Node.js, Python",800000,30 days,Experienced Full Stack Developer,Male,1995-05-15,B.Tech,IIT Delhi,2017,M.Tech,IIT Delhi,2019,Married,Delhi,110001,No,123 Main St Delhi`;
-    const blob = new Blob([template], { type: 'text/csv' });
+    const headers = [
+      'Job Title', 'Date of application', 'Name', 'Email ID', 'Phone Number',
+      'Current Location', 'Preferred Locations', 'Total Experience', 'Curr. Company name',
+      'Curr. Company Designation', 'Department', 'Role', 'Industry', 'Key Skills',
+      'Annual Salary', 'Notice period/ Availability to join', 'Resume Headline', 'Summary',
+      'Under Graduation degree', 'UG Specialization', 'UG University/institute Name', 'UG Graduation year',
+      'Post graduation degree', 'PG specialization', 'PG university/institute name', 'PG graduation year',
+      'Doctorate degree', 'Doctorate specialization', 'Doctorate university/institute name', 'Doctorate graduation year',
+      'Gender', 'Marital Status', 'Home Town/City', 'Pin Code', 'Work permit for USA',
+      'Date of Birth', 'Permanent Address'
+    ];
+    const sampleRow = [
+      'Software Engineer', '2026-07-10', 'Raj Kumar', 'raj@email.com', '9876543210',
+      'Bangalore', 'Bangalore/Chennai', '5', 'TechCorp',
+      'Senior Developer', 'IT', 'Developer', 'Software', '"React, Node.js, Python"',
+      '800000', '30 days', 'Experienced Full Stack Developer', 'Experienced developer in web technologies',
+      'B.Tech', 'Computer Science', 'IIT Delhi', '2017',
+      'M.Tech', 'Computer Science', 'IIT Delhi', '2019',
+      'None', 'None', 'None', 'None',
+      'Male', 'Married', 'Delhi', '110001', 'No',
+      '1995-05-15', '123 Main St Delhi'
+    ];
+    const csvContent = `${headers.join(',')}\n${sampleRow.join(',')}`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
