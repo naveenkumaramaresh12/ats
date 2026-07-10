@@ -1,5 +1,5 @@
 const dns = require('dns');
-// dns.setServers(['8.8.8.8', '1.1.1.1']);
+dns.setServers(['8.8.8.8', '1.1.1.1']);
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const express = require('express');
 const mongoose = require('mongoose');
