@@ -23,6 +23,7 @@ export function FaceVerificationModal({
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [faceDetected, setFaceDetected] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -34,6 +35,7 @@ export function FaceVerificationModal({
     setStep(0);
     setProgress(0);
     setError('');
+    setFaceDetected(false);
 
     // Load models and start camera
     const initBiometrics = async () => {
@@ -103,6 +105,7 @@ export function FaceVerificationModal({
         ).withFaceLandmarks().withFaceDescriptor();
 
         if (detection) {
+          setFaceDetected(true);
           const liveDescriptor = Array.from(detection.descriptor) as number[];
 
           setProgress(prev => {
@@ -116,6 +119,7 @@ export function FaceVerificationModal({
             return nextProgress;
           });
         } else {
+          setFaceDetected(false);
           // Decay progress slowly if face is lost to encourage stable alignment
           setProgress(prev => Math.max(0, prev - 2));
         }
@@ -219,7 +223,9 @@ export function FaceVerificationModal({
         </div>
 
         {/* Camera Scanner Viewport */}
-        <div className="relative w-64 h-64 rounded-full overflow-hidden border-4 border-slate-100 bg-slate-950 flex items-center justify-center shadow-inner group">
+        <div className={`relative w-64 h-64 rounded-full overflow-hidden border-4 transition-all duration-350 ${
+          faceDetected ? 'border-green-500 shadow-[0_0_20px_rgba(34,197,94,0.35)]' : 'border-slate-100'
+        } bg-slate-950 flex items-center justify-center shadow-inner group`}>
           {error && step === 0 ? (
             <div className="px-6 text-red-500 space-y-2">
               {error.includes('Loading') || error.includes('Initializing') ? (
@@ -247,10 +253,26 @@ export function FaceVerificationModal({
               {/* Scanning Target Overlays */}
               {step === 1 && (
                 <>
-                  {/* Glowing Scanner Line */}
-                  <div className="absolute left-0 right-0 h-1 bg-green-500/80 shadow-[0_0_10px_#22c55e] animate-[bounce_2s_infinite]" />
-                  {/* Outer glowing target circle */}
-                  <div className="absolute inset-4 rounded-full border-2 border-dashed border-green-500/40 animate-[spin_20s_linear_infinite]" />
+                  {/* Glowing Laser Sweep Line */}
+                  <div className={`absolute left-0 right-0 h-0.5 ${
+                    faceDetected ? 'bg-green-500 shadow-[0_0_10px_#22c55e]' : 'bg-amber-500 shadow-[0_0_10px_#f59e0b]'
+                  } transition-colors duration-300 animate-[bounce_2.5s_infinite]`} />
+                  
+                  {/* High-Tech Circular HUD overlay */}
+                  <div className={`absolute inset-0 pointer-events-none transition-all duration-300 ${
+                    faceDetected ? 'border-green-500/40' : 'border-amber-500/30'
+                  } rounded-full border-2 border-dashed`}>
+                    {/* Glowing corners / brackets for alignment guidance */}
+                    <div className="absolute inset-8 border border-white/10 rounded-full">
+                      {/* Retro Scanner Target Overlay Grid */}
+                      <div className="absolute inset-0 flex items-center justify-center opacity-10">
+                        <div className="w-px h-full bg-white border-dashed" />
+                        <div className="h-px w-full bg-white border-dashed" />
+                      </div>
+                      {/* Scanner Circular Target Rings */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 border border-dashed border-white/20 rounded-full animate-[ping_4s_infinite]" />
+                    </div>
+                  </div>
                 </>
               )}
 
@@ -278,14 +300,29 @@ export function FaceVerificationModal({
                 </div>
               )}
               {step === 1 && (
-                <div className="space-y-2">
-                  <p className="text-slate-700 text-sm font-semibold animate-pulse">
+                <div className="space-y-3">
+                  <div className="flex justify-center mb-1">
+                    {faceDetected ? (
+                      <span className="px-3 py-1 bg-green-50 text-green-700 border border-green-200 text-[10px] font-bold tracking-wider uppercase rounded-full flex items-center gap-1.5 shadow-sm animate-pulse">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-ping" />
+                        Biometrics Sensed
+                      </span>
+                    ) : (
+                      <span className="px-3 py-1 bg-amber-50 text-amber-700 border border-amber-200 text-[10px] font-bold tracking-wider uppercase rounded-full flex items-center gap-1.5 shadow-sm animate-bounce">
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
+                        Align Face In Center
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-slate-700 text-sm font-semibold">
                     {isRegistering ? 'Registering face print. Keep face still...' : 'Scanning biometric features. Keep face still...'}
                   </p>
                   {/* Custom Progress Bar */}
                   <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
                     <div
-                      className="h-full bg-gradient-to-r from-green-500 to-emerald-600 transition-all duration-100 ease-out"
+                      className={`h-full bg-gradient-to-r ${
+                        faceDetected ? 'from-green-500 to-emerald-600' : 'from-amber-400 to-amber-500'
+                      } transition-all duration-100 ease-out`}
                       style={{ width: `${progress}%` }}
                     />
                   </div>

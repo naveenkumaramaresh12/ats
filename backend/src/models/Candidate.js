@@ -266,16 +266,15 @@ const candidateSchema = new mongoose.Schema({
   doctorateGraduationYear: { type: String, trim: true },
 
   // ─── Additional Personal Details ─────────────────────────────────
-  maritalStatus: {
-    type: String,
-    enum: ['Single', 'Married', 'Divorced', 'Widowed', 'Prefer not to say'],
-    trim: true
-  },
+  maritalStatus: { type: String, trim: true },
   homeTownCity: { type: String, trim: true },
   pinCode: { type: String, trim: true },
-  usaWorkPermit: { type: Boolean, default: false },
+  usaWorkPermit: { type: String, trim: true }, // Changed to string to handle 'Need H1 Visa', 'Yes', 'No', etc.
   permanentAddress: { type: String, trim: true },
   resumeHeadline: { type: String, trim: true },
+  dateOfApplication: { type: String, trim: true },
+  currentRole: { type: String, trim: true },
+  ugSpecialization: { type: String, trim: true },
 
   // ─── Company & Department Info ──────────────────────────────────
   department: { type: String, trim: true },

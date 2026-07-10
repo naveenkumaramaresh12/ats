@@ -1,11 +1,63 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
 import {
   ArrowRight, CheckCircle2, Users, BarChart3, Phone,
   Star, Shield, TrendingUp, Clock, Search
 } from 'lucide-react';
-import logoImg from '../../../assets/Logo.jpeg';
+import { AreaChart, Area, Tooltip, ResponsiveContainer } from 'recharts';
+import logoImg from '../../../assets/Logo.png';
 
-const HERO_IMAGE = "https://images.unsplash.com/photo-1762330472769-cb8e6c8324d0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjByZWNydWl0bWVudCUyMG9mZmljZSUyMHRlYW0lMjBoaXJpbmd8ZW58MXx8fHwxNzcxNzc3MDUwfDA&ixlib=rb-4.1.0&q=80&w=1080";
+const PLACEMENT_DATA = {
+  Weekly: {
+    total: '42',
+    growth: '↑ 18% vs last week',
+    chartData: [
+      { name: 'Mon', hires: 5 },
+      { name: 'Tue', hires: 8 },
+      { name: 'Wed', hires: 6 },
+      { name: 'Thu', hires: 9 },
+      { name: 'Fri', hires: 11 },
+      { name: 'Sat', hires: 3 },
+    ],
+    feed: [
+      { name: 'Rohan M.', company: 'Infosys', time: '10 mins ago' },
+      { name: 'Neha K.', company: 'Wipro', time: '1 hr ago' },
+      { name: 'Vikram D.', company: 'TCS', time: '4 hrs ago' },
+    ]
+  },
+  Monthly: {
+    total: '185',
+    growth: '↑ 24% vs last month',
+    chartData: [
+      { name: 'W1', hires: 35 },
+      { name: 'W2', hires: 48 },
+      { name: 'W3', hires: 52 },
+      { name: 'W4', hires: 50 },
+    ],
+    feed: [
+      { name: 'Priya S.', company: 'Cognizant', time: 'Just now' },
+      { name: 'Rohan M.', company: 'Infosys', time: '10 mins ago' },
+      { name: 'Amit G.', company: 'Capgemini', time: '30 mins ago' },
+      { name: 'Neha K.', company: 'Wipro', time: '1 hr ago' },
+    ]
+  },
+  Yearly: {
+    total: '2,140',
+    growth: '↑ 32% vs last year',
+    chartData: [
+      { name: 'Q1', hires: 450 },
+      { name: 'Q2', hires: 520 },
+      { name: 'Q3', hires: 590 },
+      { name: 'Q4', hires: 580 },
+    ],
+    feed: [
+      { name: 'Priya S.', company: 'Cognizant', time: 'Just now' },
+      { name: 'Rohan M.', company: 'Infosys', time: '10 mins ago' },
+      { name: 'Sanjay P.', company: 'Accenture', time: '1 day ago' },
+      { name: 'Anita V.', company: 'HCL', time: '2 days ago' },
+    ]
+  }
+};
 
 const features = [
   { icon: Search, title: 'Smart Resume Search', desc: 'Filter by skills, experience, source, and status instantly.' },
@@ -35,6 +87,8 @@ const benefits = [
 ];
 
 export function LandingPage() {
+  const [placementTab, setPlacementTab] = useState<'Weekly' | 'Monthly' | 'Yearly'>('Monthly');
+
   return (
     <div className="bg-white">
       {/* Hero */}
@@ -87,20 +141,89 @@ export function LandingPage() {
               </div>
             </div>
             <div className="hidden lg:block">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl ring-1 ring-white/10">
-                <img src={HERO_IMAGE} alt="Recruitment Team" className="w-full h-80 object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent" />
-                {/* Floating card */}
-                <div className="absolute bottom-4 left-4 right-4 bg-white/95 backdrop-blur rounded-xl p-4 shadow-lg">
+              <div className="bg-slate-900/80 backdrop-blur-md rounded-2xl p-6 shadow-2xl border border-slate-700/50 flex flex-col gap-5 min-h-[420px]">
+                {/* Logo and Header */}
+                <div className="flex items-center justify-between border-b border-slate-700/50 pb-4 flex-shrink-0">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-green-600 rounded-lg flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-white" />
+                    <div className="bg-white p-2 rounded-xl flex items-center justify-center shadow-md">
+                      <img src={logoImg} alt="White Horse Manpower" className="h-10 w-auto object-contain" />
                     </div>
                     <div>
-                      <p className="text-slate-500 text-xs">This month's hires</p>
-                      <p className="text-slate-800" style={{ fontWeight: 700, fontSize: '1.25rem' }}>+127 Placements</p>
+                      <h4 className="text-white font-bold text-sm leading-tight">White Horse Manpower</h4>
+                      <span className="text-xs text-green-400 font-medium">Placement Live Dashboard</span>
                     </div>
-                    <div className="ml-auto text-emerald-600 text-sm" style={{ fontWeight: 600 }}>↑ 24%</div>
+                  </div>
+                  <span className="flex h-2 w-2 relative">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                </div>
+
+                {/* Placement Stats Filter / Tabs */}
+                <div className="flex items-center justify-between flex-shrink-0">
+                  <span className="text-slate-400 text-xs font-semibold uppercase tracking-wider">Placement Analytics</span>
+                  <div className="flex gap-1 bg-slate-800/80 p-0.5 rounded-lg border border-slate-700/30">
+                    {(['Weekly', 'Monthly', 'Yearly'] as const).map(tab => (
+                      <button
+                        key={tab}
+                        type="button"
+                        onClick={() => setPlacementTab(tab)}
+                        className={`text-[10px] px-2.5 py-1 rounded-md font-bold transition-all ${
+                          placementTab === tab ? 'bg-green-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {tab}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Main Metric & Graph */}
+                <div className="grid grid-cols-3 gap-4 bg-slate-850 p-4 rounded-xl border border-slate-700/20 flex-shrink-0">
+                  <div className="col-span-1 flex flex-col justify-center">
+                    <p className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Total Hires</p>
+                    <h3 className="text-white text-2xl font-extrabold tracking-tight mt-1">
+                      {PLACEMENT_DATA[placementTab].total}
+                    </h3>
+                    <span className="text-[10px] font-bold text-emerald-400 mt-2 flex items-center gap-1">
+                      {PLACEMENT_DATA[placementTab].growth}
+                    </span>
+                  </div>
+                  <div className="col-span-2 h-24">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <AreaChart data={PLACEMENT_DATA[placementTab].chartData} margin={{ top: 5, right: 5, left: -20, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorPlacements" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0.0}/>
+                          </linearGradient>
+                        </defs>
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#1e293b', borderColor: '#475569', borderRadius: '8px' }}
+                          labelStyle={{ color: '#94a3b8', fontWeight: 600, fontSize: '10px' }}
+                          itemStyle={{ color: '#fff', fontSize: '11px', fontWeight: 700 }}
+                        />
+                        <Area type="monotone" dataKey="hires" stroke="#22c55e" strokeWidth={2} fillOpacity={1} fill="url(#colorPlacements)" />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* Live Placements Feed */}
+                <div className="flex-1 overflow-hidden flex flex-col gap-2 min-h-0">
+                  <p className="text-slate-500 text-[10px] uppercase font-bold tracking-wider flex-shrink-0">Live Placement Feed</p>
+                  <div className="space-y-2 overflow-y-auto pr-1 flex-1">
+                    {PLACEMENT_DATA[placementTab].feed.map((item, idx) => (
+                      <div key={idx} className="flex items-center justify-between bg-slate-800/30 px-3 py-2 rounded-lg border border-slate-700/20 text-xs">
+                        <div className="flex items-center gap-2">
+                          <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                          <span className="text-slate-300 font-semibold">{item.name}</span>
+                          <span className="text-slate-500 font-medium">placed at</span>
+                          <span className="text-green-400 font-bold">{item.company}</span>
+                        </div>
+                        <span className="text-slate-500 text-[10px]">{item.time}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>

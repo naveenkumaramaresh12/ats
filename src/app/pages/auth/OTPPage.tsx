@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { Smartphone, RefreshCw, CheckCircle2 } from 'lucide-react';
 import { useAuth, ROLE_DASHBOARD } from '../../context/AuthContext';
 import api from '../../services/api';
-import logoImg from '../../../assets/Logo.jpeg';
+import logoImg from '../../../assets/Logo.png';
 
 export function OTPPage() {
   const [otp, setOtp] = useState(['', '', '', '', '', '']);

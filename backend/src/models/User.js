@@ -7,6 +7,7 @@ const userSchema = new mongoose.Schema({
   employeeId: { type: String, unique: true, sparse: true, trim: true },
   password: { type: String, required: true, minlength: 6 },
   role: { type: String, enum: ['recruiter', 'tl', 'manager', 'admin', 'spoc', 'walkin'], required: true },
+  roles: { type: [String], default: [] },
   isWFH: { type: Boolean, default: false },
   status: { type: String, enum: ['Active', 'Suspended'], default: 'Active' },
   avatar: { type: String, default: '' },
@@ -15,6 +16,9 @@ const userSchema = new mongoose.Schema({
   otp: { type: String },
   otpExpiry: { type: Date },
   joinedDate: { type: Date, default: Date.now },
+  loginStartTime: { type: String, default: '09:00' },
+  loginEndTime: { type: String, default: '18:00' },
+  allowHomeLogin: { type: Boolean, default: true },
 }, { timestamps: true });
 
 userSchema.index({ role: 1 });

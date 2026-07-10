@@ -9,6 +9,7 @@ import { ServicesPage } from './pages/public/ServicesPage';
 import { ApplyPage } from './pages/public/ApplyPage';
 
 import { LoginPage } from './pages/auth/LoginPage';
+import { OTPPage } from './pages/auth/OTPPage';
 
 import { RecruiterDashboard } from './pages/recruiter/RecruiterDashboard';
 import { ResumeListPage } from './pages/recruiter/ResumeListPage';
@@ -90,6 +91,7 @@ export const router = createBrowserRouter([
 
   // Auth Routes (standalone)
   { path: '/login', Component: LoginPage },
+  { path: '/otp', Component: OTPPage },
 
   // Walk-In (standalone, tablet-friendly)
   { path: '/walk-in', Component: WalkInLandingPage },

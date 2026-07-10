@@ -46,9 +46,24 @@ const auth = async (req, res, next) => {
   }
 };
 
+const ROLE_INHERITANCE = {
+  admin: ['admin', 'manager', 'tl', 'recruiter', 'spoc'],
+  manager: ['manager', 'tl', 'recruiter', 'spoc'],
+  tl: ['tl', 'recruiter', 'spoc'],
+  recruiter: ['recruiter'],
+  spoc: ['spoc'],
+  walkin: ['walkin']
+};
+
 const authorize = (...roles) => {
   return (req, res, next) => {
-    if (!req.user || !roles.includes(req.user.role)) {
+    if (!req.user) {
+      return res.status(403).json({ message: 'Insufficient permissions' });
+    }
+    const userRole = req.user.role;
+    const effectiveRoles = ROLE_INHERITANCE[userRole] || [userRole];
+    const hasAccess = roles.some(role => effectiveRoles.includes(role));
+    if (!hasAccess) {
       return res.status(403).json({ message: 'Insufficient permissions' });
     }
     next();

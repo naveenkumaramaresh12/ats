@@ -8,7 +8,7 @@ import {
   Building2, Database, ClipboardCheck, CheckSquare, MonitorCheck, Mail, LayoutGrid, Upload, Settings, Globe,
 } from 'lucide-react';
 import { useAuth, Role } from '../../context/AuthContext';
-import logoImg from '../../../assets/Logo.jpeg';
+import logoImg from '../../../assets/Logo.png';
 import { FaceVerificationModal } from '../attendance/FaceVerificationModal';
 
 interface NavItem {
@@ -16,62 +16,62 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   roles: Role[];
+  category: 'Admin' | 'Manager' | 'Team Lead' | 'Recruiter';
 }
 
 const NAV_ITEMS: NavItem[] = [
   // Recruiter
-  { label: 'Dashboard',        href: '/recruiter',               icon: LayoutDashboard, roles: ['recruiter', 'spoc'] },
-  { label: 'Resumes',          href: '/recruiter/resumes',       icon: Users,           roles: ['recruiter', 'spoc', 'tl'] },
-  { label: 'Add Candidate',    href: '/recruiter/add',           icon: UserPlus,        roles: ['recruiter', 'tl', 'spoc'] },
-  { label: 'Walk-In Queue',    href: '/recruiter/walkin-queue',  icon: ListChecks,      roles: ['recruiter', 'tl', 'spoc'] },
-  { label: 'Walk-In Mgmt',    href: '/recruiter/walkins',       icon: UserCheck,       roles: ['recruiter', 'tl', 'spoc'] },
-  // { label: 'Assessment Form', href: '/recruiter/walkin-interview', icon: FileText,     roles: ['recruiter', 'tl', 'spoc'] },
-  { label: 'Interviews',       href: '/recruiter/interviews',    icon: CalendarCheck,   roles: ['recruiter', 'tl', 'spoc'] },
-  { label: 'ATS Scanner',      href: '/recruiter/scan',          icon: ScanLine,        roles: ['recruiter', 'tl'] },
-  { label: 'ATS Database',     href: '/recruiter/ats-database',  icon: Database,        roles: ['recruiter', 'tl', 'spoc'] },
-  { label: 'Recruiter Portals', href: '/recruiter-portals',       icon: Globe,           roles: ['admin', 'recruiter', 'tl', 'spoc', 'manager'] },
-  { label: 'Email Center',     href: '/email',                   icon: Mail,            roles: ['recruiter'] },
+  { label: 'Dashboard',        href: '/recruiter',               icon: LayoutDashboard, roles: ['recruiter', 'spoc'], category: 'Recruiter' },
+  { label: 'Resumes',          href: '/recruiter/resumes',       icon: Users,           roles: ['recruiter', 'spoc', 'tl'], category: 'Recruiter' },
+  { label: 'Add Candidate',    href: '/recruiter/add',           icon: UserPlus,        roles: ['recruiter', 'tl', 'spoc'], category: 'Recruiter' },
+  { label: 'Walk-In Queue',    href: '/recruiter/walkin-queue',  icon: ListChecks,      roles: ['recruiter', 'tl', 'spoc'], category: 'Recruiter' },
+  { label: 'Walk-In Mgmt',     href: '/recruiter/walkins',       icon: UserCheck,       roles: ['recruiter', 'tl', 'spoc'], category: 'Recruiter' },
+  { label: 'Interviews',       href: '/recruiter/interviews',    icon: CalendarCheck,   roles: ['recruiter', 'tl', 'spoc'], category: 'Recruiter' },
+  { label: 'ATS Scanner',      href: '/recruiter/scan',          icon: ScanLine,        roles: ['recruiter', 'tl'], category: 'Recruiter' },
+  { label: 'ATS Database',     href: '/recruiter/ats-database',  icon: Database,        roles: ['recruiter', 'tl', 'spoc'], category: 'Recruiter' },
+  { label: 'Recruiter Portals', href: '/recruiter-portals',       icon: Globe,           roles: ['admin', 'recruiter', 'tl', 'spoc', 'manager'], category: 'Recruiter' },
+  { label: 'Email Center',     href: '/email',                   icon: Mail,            roles: ['recruiter'], category: 'Recruiter' },
 
   // Team Lead
-  { label: 'Overview',         href: '/tl',                      icon: LayoutDashboard, roles: ['tl'] },
-  { label: 'My Team',          href: '/tl/my-team',              icon: Users,           roles: ['tl'] },
-  { label: 'Eligible Candidates', href: '/tl/follow-ups',        icon: ClipboardCheck,  roles: ['tl', 'manager', 'admin'] },
-  { label: 'Job Requirements', href: '/admin/jobs',              icon: Briefcase,        roles: ['tl'] },
-  { label: 'Create Job (JR)',  href: '/recruiter/jobs/new',      icon: FileText,         roles: ['tl'] },
-  { label: 'Bulk Job Post',   href: '/recruiter/jobs/bulk',     icon: LayoutGrid,       roles: ['tl'] },
-  { label: 'Email Center',     href: '/email',                   icon: Mail,            roles: ['tl'] },
+  { label: 'Overview',         href: '/tl',                      icon: LayoutDashboard, roles: ['tl'], category: 'Team Lead' },
+  { label: 'My Team',          href: '/tl/my-team',              icon: Users,           roles: ['tl'], category: 'Team Lead' },
+  { label: 'Eligible Candidates', href: '/tl/follow-ups',        icon: ClipboardCheck,  roles: ['tl', 'manager', 'admin'], category: 'Team Lead' },
+  { label: 'Job Requirements', href: '/admin/jobs',              icon: Briefcase,        roles: ['tl'], category: 'Team Lead' },
+  { label: 'Create Job (JR)',  href: '/recruiter/jobs/new',      icon: FileText,         roles: ['tl'], category: 'Team Lead' },
+  { label: 'Bulk Job Post',    href: '/recruiter/jobs/bulk',     icon: LayoutGrid,       roles: ['tl'], category: 'Team Lead' },
+  { label: 'Email Center',     href: '/email',                   icon: Mail,            roles: ['tl'], category: 'Team Lead' },
 
   // Manager
-  { label: 'Overview',         href: '/manager',                 icon: LayoutDashboard, roles: ['manager'] },
-  { label: 'Candidate DB',     href: '/admin/candidates',        icon: Database,         roles: ['manager'] },
-  { label: 'Job Requirements', href: '/admin/jobs',              icon: Briefcase,        roles: ['manager'] },
-  { label: 'Bulk Job Post',    href: '/recruiter/jobs/bulk',    icon: LayoutGrid,       roles: ['manager'] },
-  { label: 'Reports',          href: '/manager/reports',         icon: BarChart2,        roles: ['manager'] },
-  { label: 'Revenue',          href: '/revenue',                 icon: TrendingUp,       roles: ['manager'] },
-  { label: 'Salary',           href: '/salary',                  icon: DollarSign,       roles: ['manager'] },
-  { label: 'TL Login Activity',href: '/manager/tl-activity',    icon: MonitorCheck,     roles: ['manager'] },
+  { label: 'Overview',         href: '/manager',                 icon: LayoutDashboard, roles: ['manager'], category: 'Manager' },
+  { label: 'Candidate DB',     href: '/admin/candidates',        icon: Database,         roles: ['manager'], category: 'Manager' },
+  { label: 'Job Requirements', href: '/admin/jobs',              icon: Briefcase,        roles: ['manager'], category: 'Manager' },
+  { label: 'Bulk Job Post',    href: '/recruiter/jobs/bulk',     icon: LayoutGrid,       roles: ['manager'], category: 'Manager' },
+  { label: 'Reports',          href: '/manager/reports',         icon: BarChart2,        roles: ['manager'], category: 'Manager' },
+  { label: 'Revenue',          href: '/revenue',                 icon: TrendingUp,       roles: ['manager'], category: 'Manager' },
+  { label: 'Salary',           href: '/salary',                  icon: DollarSign,       roles: ['manager'], category: 'Manager' },
+  { label: 'TL Login Activity',href: '/manager/tl-activity',     icon: MonitorCheck,     roles: ['manager'], category: 'Manager' },
 
   // Admin
-  { label: 'Dashboard',        href: '/admin',                   icon: LayoutDashboard, roles: ['admin'] },
-  { label: 'User Management',  href: '/admin/users',             icon: UserCog,          roles: ['admin'] },
-  { label: 'Attendance',       href: '/admin/attendance',        icon: Clock,            roles: ['admin'] },
-  { label: 'Access Control',   href: '/admin/access',            icon: Shield,           roles: ['admin'] },
-  { label: 'Candidate DB',     href: '/admin/candidates',        icon: Database,         roles: ['admin'] },
-  { label: 'ATS Scan Database',href: '/admin/ats-records',      icon: ScanLine,         roles: ['admin'] },
-  { label: 'Excel Import',     href: '/admin/excel-import',      icon: Upload,           roles: ['admin'] },
-  { label: 'Field Config',     href: '/admin/field-config',      icon: Settings,         roles: ['admin'] },
-  { label: 'Job Requirements', href: '/admin/jobs',              icon: Briefcase,        roles: ['admin'] },
-  { label: 'Bulk Job Post',   href: '/recruiter/jobs/bulk',     icon: LayoutGrid,       roles: ['admin'] },
-  { label: 'Companies',        href: '/admin/companies',         icon: Building2,        roles: ['admin'] },
-  { label: 'Tasks',           href: '/admin/tasks',             icon: CheckSquare,      roles: ['admin', 'tl', 'recruiter'] },
-  { label: 'Recruiter Joining Form', href: '/recruiter/joining', icon: FileCheck,        roles: ['admin', 'recruiter', 'tl'] },
-  { label: 'Recruiter Records',  href: '/admin/joining',           icon: ClipboardCheck,   roles: ['admin', 'recruiter', 'tl'] },
-  { label: 'Email Center',     href: '/email',                   icon: Mail,            roles: ['admin'] },
-  { label: 'TL Login Activity',href: '/admin/tl-activity',      icon: MonitorCheck,     roles: ['admin'] },
-  { label: 'System Logs',      href: '/admin/logs',              icon: Activity,         roles: ['admin'] },
-  { label: 'Salary',           href: '/salary',                  icon: DollarSign,       roles: ['admin'] },
-  { label: 'Revenue',          href: '/revenue',                 icon: TrendingUp,       roles: ['admin', 'manager'] },
-  { label: 'Credit Notes',     href: '/credit-notes',            icon: FileCheck,        roles: ['admin'] },
+  { label: 'Dashboard',        href: '/admin',                   icon: LayoutDashboard, roles: ['admin'], category: 'Admin' },
+  { label: 'User Management',  href: '/admin/users',             icon: UserCog,          roles: ['admin'], category: 'Admin' },
+  { label: 'Attendance',       href: '/admin/attendance',        icon: Clock,            roles: ['admin'], category: 'Admin' },
+  { label: 'Access Control',   href: '/admin/access',            icon: Shield,           roles: ['admin'], category: 'Admin' },
+  { label: 'Candidate DB',     href: '/admin/candidates',        icon: Database,         roles: ['admin'], category: 'Admin' },
+  { label: 'ATS Scan Database',href: '/admin/ats-records',       icon: ScanLine,         roles: ['admin'], category: 'Admin' },
+  { label: 'Excel Import',     href: '/admin/excel-import',      icon: Upload,           roles: ['admin'], category: 'Admin' },
+  { label: 'Field Config',     href: '/admin/field-config',      icon: Settings,         roles: ['admin'], category: 'Admin' },
+  { label: 'Job Requirements', href: '/admin/jobs',              icon: Briefcase,        roles: ['admin'], category: 'Admin' },
+  { label: 'Bulk Job Post',    href: '/recruiter/jobs/bulk',     icon: LayoutGrid,       roles: ['admin'], category: 'Admin' },
+  { label: 'Companies',        href: '/admin/companies',         icon: Building2,        roles: ['admin'], category: 'Admin' },
+  { label: 'Tasks',            href: '/admin/tasks',             icon: CheckSquare,      roles: ['admin', 'tl', 'recruiter'], category: 'Admin' },
+  { label: 'Recruiter Joining Form', href: '/recruiter/joining', icon: FileCheck,        roles: ['admin', 'recruiter', 'tl'], category: 'Admin' },
+  { label: 'Recruiter Records',  href: '/admin/joining',           icon: ClipboardCheck,   roles: ['admin', 'recruiter', 'tl'], category: 'Admin' },
+  { label: 'Email Center',     href: '/email',                   icon: Mail,            roles: ['admin'], category: 'Admin' },
+  { label: 'TL Login Activity',href: '/admin/tl-activity',       icon: MonitorCheck,     roles: ['admin'], category: 'Admin' },
+  { label: 'System Logs',      href: '/admin/logs',              icon: Activity,         roles: ['admin'], category: 'Admin' },
+  { label: 'Salary',           href: '/salary',                  icon: DollarSign,       roles: ['admin'], category: 'Admin' },
+  { label: 'Revenue',          href: '/revenue',                 icon: TrendingUp,       roles: ['admin', 'manager'], category: 'Admin' },
+  { label: 'Credit Notes',     href: '/credit-notes',            icon: FileCheck,        roles: ['admin'], category: 'Admin' },
 ];
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -80,6 +80,8 @@ const ROLE_LABELS: Record<Role, string> = {
   manager: 'Manager',
   admin: 'Admin',
   spoc: 'SPOC',
+  walkin: 'Walk-In',
+  demo_walkin: 'Demo Walk-In',
 };
 
 const ROLE_COLORS: Record<Role, string> = {
@@ -88,11 +90,21 @@ const ROLE_COLORS: Record<Role, string> = {
   manager: 'bg-amber-100 text-amber-700',
   admin: 'bg-red-100 text-red-700',
   spoc: 'bg-sky-100 text-sky-700',
+  walkin: 'bg-teal-100 text-teal-700',
+  demo_walkin: 'bg-indigo-100 text-indigo-700',
 };
 
 interface SidebarProps {
   onClose?: () => void;
 }
+
+const ROLE_CATEGORIES: Record<string, string[]> = {
+  admin: ['Admin', 'Manager', 'Team Lead', 'Recruiter'],
+  manager: ['Manager', 'Team Lead', 'Recruiter'],
+  tl: ['Team Lead', 'Recruiter'],
+  recruiter: ['Recruiter'],
+  spoc: ['Recruiter'],
+};
 
 export function Sidebar({ onClose }: SidebarProps) {
   const { user, logout } = useAuth();
@@ -102,7 +114,26 @@ export function Sidebar({ onClose }: SidebarProps) {
 
   if (!user) return null;
 
-  const filteredNav = NAV_ITEMS.filter(item => item.roles.includes(user.role));
+  const userRoles = user.roles && user.roles.length > 0 ? user.roles : [user.role];
+  const allowedCategoriesSet = new Set<string>();
+  userRoles.forEach(r => {
+    const cats = ROLE_CATEGORIES[r] || ['Recruiter'];
+    cats.forEach(c => allowedCategoriesSet.add(c));
+  });
+  const categoryOrder = ['Admin', 'Manager', 'Team Lead', 'Recruiter'];
+  const allowedCategories = categoryOrder.filter(c => allowedCategoriesSet.has(c));
+
+  const rawFilteredNav = NAV_ITEMS.filter(item => allowedCategories.includes(item.category));
+  
+  // Deduplicate by href
+  const seenHrefs = new Set<string>();
+  const filteredNav = rawFilteredNav.filter(item => {
+    if (seenHrefs.has(item.href)) {
+      return false;
+    }
+    seenHrefs.add(item.href);
+    return true;
+  });
 
   const handleLogout = () => {
     if (user.role === 'admin') {
@@ -163,28 +194,40 @@ export function Sidebar({ onClose }: SidebarProps) {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
-        <div className="space-y-0.5">
-          {filteredNav.map((item) => {
-            const active = isActive(item.href);
-            const Icon = item.icon;
+        <div className="space-y-4">
+          {allowedCategories.filter(cat => filteredNav.some(item => item.category === cat)).map((category) => {
+            const categoryItems = filteredNav.filter(item => item.category === category);
             return (
-              <Link
-                key={item.href}
-                to={item.href}
-                onClick={onClose}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors group ${
-                  active
-                    ? 'bg-green-600 text-white'
-                    : 'text-slate-600 hover:bg-green-50 hover:text-green-800'
-                }`}
-                style={{ fontWeight: active ? 600 : 400 }}
-              >
-                <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'text-slate-400 group-hover:text-green-600'}`} />
-                <span className="flex-1">
-                  {item.href === '/admin/tasks' && user.role !== 'admin' ? 'My Tasks' : item.label}
-                </span>
-                {active && <ChevronRight className="w-3 h-3 opacity-70" />}
-              </Link>
+              <div key={category} className="space-y-1">
+                {allowedCategories.length > 1 && (
+                  <p className="text-[10px] font-bold text-slate-400 px-3 uppercase tracking-wider mb-2 mt-2">
+                    {category} Portal
+                  </p>
+                )}
+                {categoryItems.map((item) => {
+                  const active = isActive(item.href);
+                  const Icon = item.icon;
+                  return (
+                    <Link
+                      key={item.href}
+                      to={item.href}
+                      onClick={onClose}
+                      className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors group ${
+                        active
+                          ? 'bg-green-600 text-white'
+                          : 'text-slate-600 hover:bg-green-50 hover:text-green-800'
+                      }`}
+                      style={{ fontWeight: active ? 600 : 400 }}
+                    >
+                      <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-white' : 'text-slate-400 group-hover:text-green-600'}`} />
+                      <span className="flex-1">
+                        {item.href === '/admin/tasks' && user.role !== 'admin' ? 'My Tasks' : item.label}
+                      </span>
+                      {active && <ChevronRight className="w-3 h-3 opacity-70" />}
+                    </Link>
+                  );
+                })}
+              </div>
             );
           })}
         </div>

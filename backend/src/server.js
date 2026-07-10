@@ -1,5 +1,5 @@
 const dns = require('dns');
-dns.setServers(['8.8.8.8', '1.1.1.1']);
+// dns.setServers(['8.8.8.8', '1.1.1.1']);
 require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') });
 const express = require('express');
 const mongoose = require('mongoose');
@@ -36,6 +36,7 @@ const searchRoutes = require('./routes/search.routes');
 const notificationRoutes = require('./routes/notification.routes');
 const recruiterPortalRoutes = require('./routes/recruiterPortal.routes');
 const supportRoutes = require('./routes/support.routes');
+const businessDevelopmentRoutes = require('./routes/businessDevelopment.routes');
 
 const { errorHandler } = require('./middleware/error.middleware');
 
@@ -98,6 +99,7 @@ app.use('/api/search', searchRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/recruiter-portals', recruiterPortalRoutes);
 app.use('/api/support', supportRoutes);
+app.use('/api/business-development', businessDevelopmentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

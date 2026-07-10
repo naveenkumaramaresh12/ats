@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { ArrowRight, FileText, Clock, CheckCircle2 } from 'lucide-react';
-import logoImg from '../../../assets/Logo.jpeg';
+import logoImg from '../../../assets/Logo.png';
 
 export function WalkInLandingPage() {
   return (

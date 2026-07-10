@@ -89,10 +89,16 @@ export function ChatbotWidget({ mode }: ChatbotWidgetProps) {
     setLoading(true);
     try {
       let res;
-      // Handle the email input for status check flow
+      // Handle the email or phone input for status check flow
       if (awaitingEmail) {
         setAwaitingEmail(false);
-        res = await api.sendSupportChat('', 'check_status', text.trim());
+        const inputVal = text.trim();
+        const isEmail = inputVal.includes('@');
+        if (isEmail) {
+          res = await api.sendSupportChat('', 'check_status', inputVal, undefined);
+        } else {
+          res = await api.sendSupportChat('', 'check_status', undefined, inputVal);
+        }
       } else {
         res = await api.sendSupportChat(text, actionType);
       }

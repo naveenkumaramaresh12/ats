@@ -227,7 +227,8 @@ const EMPTY_FORM = {
   noticePeriod: '',
   dateOfBirth: '',
   joiningAvailability: '',
-
+  clientCandidateId: '',
+  candidateEmployeeId: '',
   resume: null as File | null,
 
   // Job Details
@@ -315,7 +316,7 @@ export function AddCandidatePage() {
   // JR list for auto-fill
   const [jobs, setJobs] = useState<any[]>([]);
   useEffect(() => {
-    api.getJobs().then((d: any) => setJobs(d.jobs || [])).catch(() => { });
+    api.getJobs({ limit: '1000' }).then((d: any) => setJobs(d.jobs || [])).catch(() => { });
   }, []);
 
   // ── Load existing candidate (edit / TL view mode) ────────────
@@ -330,6 +331,8 @@ export function AddCandidatePage() {
         const expYears = expRaw.replace(/[^\d]/g, '') || '';
         setForm(prev => ({
           ...prev,
+          clientCandidateId:     c.clientCandidateId || '',
+          candidateEmployeeId:   c.candidateEmployeeId || '',
           candidateName:         c.name || '',
           candidatePhone:        c.phone || '',
           candidateEmail:        c.email || '',
@@ -634,6 +637,7 @@ export function AddCandidatePage() {
           designationOffered:       form.designationOffered,
           joiningSalary:            form.joiningSalary,
           dateOfJoining:            form.dateOfJoining,
+          candidateEmployeeId:      form.candidateEmployeeId,
           finalInterviewStatus:     form.finalInterviewStatus,
         });
         setSubmitted(true);
@@ -651,6 +655,8 @@ export function AddCandidatePage() {
       const fd = new FormData();
       fd.append('name', form.candidateName);
       fd.append('phone', form.candidatePhone);
+      if (form.clientCandidateId) fd.append('clientCandidateId', form.clientCandidateId);
+      if (form.candidateEmployeeId) fd.append('candidateEmployeeId', form.candidateEmployeeId);
       if (form.candidateEmail) fd.append('email', form.candidateEmail);
       if (form.alternatePhone) fd.append('altPhone', form.alternatePhone);
       if (form.jobOpeningSource) fd.append('source', form.jobOpeningSource);
@@ -1663,6 +1669,12 @@ export function AddCandidatePage() {
                   <input type="datetime-local" value={form.callBack} onChange={e => set('callBack', e.target.value)}
                     className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-green-400 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed" />
                 </div>
+                <div>
+                  <label className="block text-sm text-slate-700 mb-1.5" style={{ fontWeight: 500 }}>CID Number</label>
+                  <input type="text" value={form.clientCandidateId || ''} onChange={e => set('clientCandidateId', e.target.value)}
+                    placeholder="e.g. C1010786727"
+                    className="w-full px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-green-400 disabled:bg-slate-50 disabled:text-slate-500 disabled:cursor-not-allowed" />
+                </div>
               </div>
               <div>
                 <label className="block text-sm text-slate-700 mb-1.5" style={{ fontWeight: 500 }}>Comments</label>
@@ -1804,11 +1816,20 @@ export function AddCandidatePage() {
                     className={`w-full px-3 py-2.5 rounded-lg border text-sm outline-none transition-colors ${(!canEditInterviewStatus || form.finalInterviewStatus !== 'Selected') ? 'bg-slate-50 border-slate-100 text-slate-400 cursor-not-allowed' : 'border-slate-200 focus:border-green-400'}`} />
                 </div>
               </div>
-              <div>
-                <label className="block text-sm text-slate-700 mb-1.5" style={{ fontWeight: 500 }}>Date of Joining</label>
-                <input type="date" value={form.dateOfJoining} onChange={e => set('dateOfJoining', e.target.value)}
-                  disabled={!canEditInterviewStatus || isLockedByFinalInterview}
-                  className={`w-full px-3 py-2.5 rounded-lg border text-sm outline-none transition-colors ${!canEditInterviewStatus ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed' : 'border-slate-200 focus:border-green-400'}`} />
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm text-slate-700 mb-1.5" style={{ fontWeight: 500 }}>Date of Joining</label>
+                  <input type="date" value={form.dateOfJoining} onChange={e => set('dateOfJoining', e.target.value)}
+                    disabled={!canEditInterviewStatus || isLockedByFinalInterview}
+                    className={`w-full px-3 py-2.5 rounded-lg border text-sm outline-none transition-colors ${!canEditInterviewStatus ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed' : 'border-slate-200 focus:border-green-400'}`} />
+                </div>
+                <div>
+                  <label className="block text-sm text-slate-700 mb-1.5" style={{ fontWeight: 500 }}>Employee ID</label>
+                  <input type="text" value={form.candidateEmployeeId || ''} onChange={e => set('candidateEmployeeId', e.target.value)}
+                    placeholder="e.g. C18589032"
+                    disabled={!canEditInterviewStatus || isLockedByFinalInterview}
+                    className={`w-full px-3 py-2.5 rounded-lg border text-sm outline-none transition-colors ${!canEditInterviewStatus ? 'bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed' : 'border-slate-200 focus:border-green-400'}`} />
+                </div>
               </div>
               <div className={`rounded-xl border p-4 ${isTLOrAdmin ? 'border-violet-200 bg-violet-50/40' : 'border-slate-200 bg-slate-50'}`}>
                 <p className="text-sm mb-1 flex items-center gap-1.5" style={{ fontWeight: 600, color: isTLOrAdmin ? '#4c1d95' : '#475569' }}>

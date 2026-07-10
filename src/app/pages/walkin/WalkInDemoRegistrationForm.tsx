@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import logoImg from '../../../assets/Logo.jpeg';
+import logoImg from '../../../assets/Logo.png';
 
 // ─── Constants ────────────────────────────────────────────────
 const YEARS_OPTIONS = Array.from({ length: 31 }, (_, i) => i.toString());

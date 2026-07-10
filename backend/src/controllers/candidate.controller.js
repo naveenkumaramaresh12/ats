@@ -51,6 +51,7 @@ exports.list = async (req, res, next) => {
     }
 
     let accessCondition = null;
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
     // Explicit per-recruiter filter (used by TL My Team view)
     // Admin or TL can pass ?recruiter=<userId> to get only that recruiter's candidates
@@ -74,7 +75,9 @@ exports.list = async (req, res, next) => {
         accessCondition = {
           $or: [
             { assignedRecruiter: req.user._id },
-            { ownershipStatus: 'General Data' }
+            { ownershipStatus: 'General Data' },
+            { assignedAt: { $lt: thirtyDaysAgo } },
+            { ownershipStatus: 'Expired' }
           ]
         };
       } else if (req.user.role === 'tl') {
@@ -87,7 +90,14 @@ exports.list = async (req, res, next) => {
         const memberIds = teamMembers.map(t => t.memberId);
         memberIds.push(req.user._id); // Include TL's own candidates if assigned any
 
-        accessCondition = { $or: [{ assignedRecruiter: { $in: memberIds } }, { ownershipStatus: 'General Data' }] };
+        accessCondition = {
+          $or: [
+            { assignedRecruiter: { $in: memberIds } },
+            { ownershipStatus: 'General Data' },
+            { assignedAt: { $lt: thirtyDaysAgo } },
+            { ownershipStatus: 'Expired' }
+          ]
+        };
       } else if (req.user.role === 'manager') {
         const User = require('../models/User');
         const TeamMember = require('../models/TeamMember');
@@ -104,7 +114,14 @@ exports.list = async (req, res, next) => {
         recruiterIds.push(...tlIds);
         recruiterIds.push(req.user._id);
 
-        accessCondition = { $or: [{ assignedRecruiter: { $in: recruiterIds } }, { ownershipStatus: 'General Data' }] };
+        accessCondition = {
+          $or: [
+            { assignedRecruiter: { $in: recruiterIds } },
+            { ownershipStatus: 'General Data' },
+            { assignedAt: { $lt: thirtyDaysAgo } },
+            { ownershipStatus: 'Expired' }
+          ]
+        };
       }
       // Admin sees all - no filter applied
     }
@@ -120,7 +137,6 @@ exports.list = async (req, res, next) => {
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
     const rejectedOrNotSelected = [
       'Rejected', 'Wrong Number', 'Unreachable', 'Did Not Pick', 'Unanswered Calls', 'Exited',
       'Rejected – Communication', 'Rejected – Experience Mismatch',
@@ -189,7 +205,7 @@ exports.getById = async (req, res, next) => {
     // Auto-update ownership status based on 30-day validity
     const lastActivity = candidate.assignedAt || candidate.createdAt;
     const daysSinceAssignment = Math.floor((Date.now() - new Date(lastActivity).getTime()) / (1000 * 60 * 60 * 24));
-    const isExpired = daysSinceAssignment >= 30;
+    const isExpired = daysSinceAssignment >= 30 || candidate.ownershipStatus === 'Expired';
 
     if (daysSinceAssignment >= 30 && candidate.ownershipStatus === 'Assigned') {
       candidate.ownershipStatus = 'Expired';
@@ -1660,13 +1676,7 @@ exports.importCandidates = async (req, res, next) => {
         for (const [excelCol, systemField] of Object.entries(fieldMap)) {
           const value = String(row[excelCol] || '').trim();
           if (value) {
-            if (systemField === 'usaWorkPermit') {
-              parsedData[systemField] = value.toLowerCase() === 'yes' || value === '1';
-            } else if (systemField === 'maritalStatus' && isValidMaritalStatus(value)) {
-              parsedData[systemField] = value;
-            } else {
-              parsedData[systemField] = value;
-            }
+            parsedData[systemField] = value;
           }
         }
 

@@ -3,6 +3,18 @@ const Employee = require('../models/Employee');
 const { createLog } = require('../utils/auditLogger');
 const { generateEmployeeId } = require('../utils/helpers');
 
+const ROLE_ORDER = ['walkin', 'recruiter', 'spoc', 'tl', 'manager', 'admin'];
+const getHighestRole = (roles) => {
+  if (!roles || roles.length === 0) return 'recruiter';
+  let highest = roles[0];
+  roles.forEach(r => {
+    if (ROLE_ORDER.indexOf(r) > ROLE_ORDER.indexOf(highest)) {
+      highest = r;
+    }
+  });
+  return highest;
+};
+
 // GET /api/users
 exports.list = async (req, res, next) => {
   try {
@@ -33,7 +45,7 @@ exports.list = async (req, res, next) => {
 // POST /api/users
 exports.create = async (req, res, next) => {
   try {
-    const { name, email, role, isWFH, password, noEmployeeId } = req.body;
+    const { name, email, role, roles, isWFH, password, noEmployeeId, loginStartTime, loginEndTime, allowHomeLogin } = req.body;
     if (!name || !email || !role || !password) {
       return res.status(400).json({ message: 'All required fields must be provided' });
     }
@@ -42,7 +54,21 @@ exports.create = async (req, res, next) => {
     if (noEmployeeId !== true) {
       employeeId = await generateEmployeeId(Employee, User);
     }
-    const user = await User.create({ name, email, employeeId, role, isWFH: isWFH || false, password });
+    const finalRoles = Array.isArray(roles) && roles.length > 0 ? roles : [role];
+    const finalRole = getHighestRole(finalRoles);
+
+    const user = await User.create({
+      name,
+      email,
+      employeeId,
+      role: finalRole,
+      roles: finalRoles,
+      isWFH: isWFH || false,
+      password,
+      loginStartTime,
+      loginEndTime,
+      allowHomeLogin
+    });
 
     await createLog({
       type: 'create', user: req.user._id, userName: req.user.name,
@@ -62,6 +88,10 @@ exports.update = async (req, res, next) => {
     const mongoose = require('mongoose');
     const updates = { ...req.body };
     delete updates.password;
+
+    if (updates.roles) {
+      updates.role = getHighestRole(updates.roles);
+    }
 
     let user;
     if (mongoose.Types.ObjectId.isValid(req.params.id)) {

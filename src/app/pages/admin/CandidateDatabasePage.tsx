@@ -289,15 +289,33 @@ export function CandidateDatabasePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
-                    {['Name', 'Phone', 'Department', 'Ownership', 'Experience', 'Source', 'Recruiter', 'Status', 'Added', ''].map(h => (
-                      <th key={h} className="px-4 py-3 text-left text-xs text-slate-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>{h}</th>
+                    {[
+                      'Job Title', 'Date of application', 'Name', 'Email ID', 'Phone Number',
+                      'Current Location', 'Preferred Locations', 'Total Experience', 'Curr. Company name',
+                      'Curr. Company Designation', 'Department', 'Role', 'Industry', 'Key Skills',
+                      'Annual Salary', 'Notice period/ Availability to join', 'Resume Headline', 'Summary',
+                      'Under Graduation degree', 'UG Specialization', 'UG University/institute Name',
+                      'UG Graduation year', 'Post graduation degree', 'PG specialization',
+                      'PG university/institute name', 'PG graduation year', 'Doctorate degree',
+                      'Doctorate specialization', 'Doctorate university/institute name',
+                      'Doctorate graduation year', 'Gender', 'Marital Status', 'Home Town/City',
+                      'Pin Code', 'Work permit for USA', 'Date of Birth', 'Permanent Address', ''
+                    ].map(h => (
+                      <th key={h} className="px-4 py-3 text-left text-xs text-slate-500 uppercase tracking-wide whitespace-nowrap" style={{ fontWeight: 600 }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {candidates.map(c => (
                     <tr key={c._id} className="hover:bg-slate-50 cursor-pointer" onClick={() => navigate(`/recruiter/candidate/${c._id}`)}>
-                      <td className="px-4 py-3">
+                      {/* 1. Job Title */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.positionApplied || '—'}</td>
+                      
+                      {/* 2. Date of application */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.dateOfApplication || '—'}</td>
+
+                      {/* 3. Name */}
+                      <td className="px-4 py-3 whitespace-nowrap">
                         <div className="flex items-center gap-2">
                           <div className="w-7 h-7 rounded-full bg-green-100 flex items-center justify-center flex-shrink-0">
                             <span className="text-green-700 text-xs" style={{ fontWeight: 600 }}>
@@ -314,36 +332,109 @@ export function CandidateDatabasePage() {
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3">
-                        <span className="flex items-center gap-1 text-slate-600 text-xs">
-                          <Phone className="w-3 h-3 text-slate-300" /> {c.phone}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="text-slate-600 text-xs truncate max-w-[120px] block" title={c.department || ''}>
-                          {c.department || '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full ${OWNERSHIP_STATUS_COLORS[c.ownershipStatus] || 'bg-slate-100 text-slate-500'}`} style={{ fontWeight: 600 }}>
-                          {c.ownershipStatus || 'Assigned'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">{c.experience || '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${SOURCE_COLORS[c.source] || 'bg-slate-100 text-slate-600'}`}>
-                          {c.source || '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-500 text-xs">{c.assignedRecruiterName || '—'}</td>
-                      <td className="px-4 py-3">
-                        <span className={`text-xs px-2 py-0.5 rounded-full ${STATUS_COLORS[c.status] || 'bg-slate-100 text-slate-500'}`}>
-                          {c.status || '—'}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
-                        {c.createdAt ? new Date(c.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: '2-digit' }) : '—'}
-                      </td>
+
+                      {/* 4. Email ID */}
+                      <td className="px-4 py-3 text-slate-600 text-xs">{c.email || '—'}</td>
+
+                      {/* 5. Phone Number */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.phone || '—'}</td>
+
+                      {/* 6. Current Location */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.currentLocation || '—'}</td>
+
+                      {/* 7. Preferred Locations */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.preferredLocation || '—'}</td>
+
+                      {/* 8. Total Experience */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.experience || '—'}</td>
+
+                      {/* 9. Curr. Company name */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.currentCompany || '—'}</td>
+
+                      {/* 10. Curr. Company Designation */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.currentRole || '—'}</td>
+
+                      {/* 11. Department */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.department || '—'}</td>
+
+                      {/* 12. Role */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.eligibleRole || '—'}</td>
+
+                      {/* 13. Industry */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.industry || '—'}</td>
+
+                      {/* 14. Key Skills */}
+                      <td className="px-4 py-3 text-slate-600 text-xs max-w-[200px] truncate" title={c.skills?.join(', ') || ''}>{c.skills?.join(', ') || '—'}</td>
+
+                      {/* 15. Annual Salary */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.currentCTC || '—'}</td>
+
+                      {/* 16. Notice period */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.noticePeriod || '—'}</td>
+
+                      {/* 17. Resume Headline */}
+                      <td className="px-4 py-3 text-slate-600 text-xs max-w-[200px] truncate" title={c.resumeHeadline || ''}>{c.resumeHeadline || '—'}</td>
+
+                      {/* 18. Summary */}
+                      <td className="px-4 py-3 text-slate-600 text-xs max-w-[200px] truncate" title={c.comments || ''}>{c.comments || '—'}</td>
+
+                      {/* 19. Under Graduation degree */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.qualification || '—'}</td>
+
+                      {/* 20. UG Specialization */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.ugSpecialization || '—'}</td>
+
+                      {/* 21. UG University Name */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.university || '—'}</td>
+
+                      {/* 22. UG Graduation year */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.yearOfGraduation || '—'}</td>
+
+                      {/* 23. Post graduation degree */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.pgDegree || '—'}</td>
+
+                      {/* 24. PG specialization */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.pgSpecialization || '—'}</td>
+
+                      {/* 25. PG university name */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.pgUniversity || '—'}</td>
+
+                      {/* 26. PG graduation year */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.pgGraduationYear || '—'}</td>
+
+                      {/* 27. Doctorate degree */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.doctorateDegree || '—'}</td>
+
+                      {/* 28. Doctorate specialization */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.doctorateSpecialization || '—'}</td>
+
+                      {/* 29. Doctorate university name */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.doctorateUniversity || '—'}</td>
+
+                      {/* 30. Doctorate graduation year */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.doctorateGraduationYear || '—'}</td>
+
+                      {/* 31. Gender */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.gender || '—'}</td>
+
+                      {/* 32. Marital Status */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.maritalStatus || '—'}</td>
+
+                      {/* 33. Home Town/City */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.homeTownCity || '—'}</td>
+
+                      {/* 34. Pin Code */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.pinCode || '—'}</td>
+
+                      {/* 35. Work permit for USA */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.usaWorkPermit || '—'}</td>
+
+                      {/* 36. Date of Birth */}
+                      <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.dateOfBirth ? new Date(c.dateOfBirth).toLocaleDateString('en-IN') : '—'}</td>
+
+                      {/* 37. Permanent Address */}
+                      <td className="px-4 py-3 text-slate-600 text-xs max-w-[200px] truncate" title={c.permanentAddress || ''}>{c.permanentAddress || '—'}</td>
+
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
                         <button onClick={() => navigate(`/recruiter/candidate/${c._id}`)}
                           className="text-slate-300 hover:text-green-600 p-1 rounded-lg hover:bg-green-50 transition-colors">

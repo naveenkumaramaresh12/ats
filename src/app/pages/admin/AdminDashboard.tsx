@@ -6,7 +6,7 @@ import {
   ScanLine, UserPlus, ListChecks, CalendarCheck, Briefcase, UserCheck, X, PhoneMissed,
   PhoneOff, PhoneCall, ClipboardList, FileCheck, UserX, Building2, BadgeCheck, Clipboard,
   DollarSign, BarChart2, Edit3, UserCog, StickyNote, ChevronDown, Database, CheckSquare,
-  Mail, FileSpreadsheet,
+  Mail, FileSpreadsheet, Plus, Trash2, RefreshCw, Filter, Flame, Download, Search,
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -102,7 +102,7 @@ const PIE_COLORS = ['#16A34A', '#7C3AED', '#059669', '#D97706', '#DC2626'];
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type DateRange = 'Day' | 'Week' | 'Quarter' | 'Year' | 'All' | 'Custom';
-type Tab = 'overview' | 'recruiting' | 'team' | 'structure' | 'analytics';
+type Tab = 'overview' | 'recruiting' | 'team' | 'structure' | 'analytics' | 'businessDev';
 const DATE_TABS: DateRange[] = ['Day', 'Week', 'Quarter', 'Year', 'All', 'Custom'];
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview',   label: 'Overview' },
@@ -110,6 +110,7 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'team',       label: 'Team' },
   { id: 'structure',  label: 'Team Structure' },
   { id: 'analytics',  label: 'Analytics' },
+  { id: 'businessDev', label: 'Business Development' },
 ];
 
 export function AdminDashboard() {
@@ -143,6 +144,51 @@ export function AdminDashboard() {
   const [mgrSourceData, setMgrSourceData]   = useState<any[]>([]);
   const [revenueData, setRevenueData]       = useState<any[]>([]);
   const [kpis, setKpis]                     = useState<any>({});
+
+  // ── Business Development state ──────────────────────────────────────────────
+  const [bizDevRecords, setBizDevRecords] = useState<any[]>([]);
+  const [bizDevStats, setBizDevStats] = useState<any>({});
+  const [bizDevLoading, setBizDevLoading] = useState(false);
+  const [bizDevSearch, setBizDevSearch] = useState('');
+  const [bizDevFilters, setBizDevFilters] = useState<any>({
+    clientStatus: '',
+    callStatus: '',
+    serviceOffered: '',
+    executiveName: '',
+    startDate: '',
+    endDate: '',
+  });
+  const [bizDevPage, setBizDevPage] = useState(1);
+  const [bizDevLimit] = useState(20);
+  const [bizDevTotal, setBizDevTotal] = useState(0);
+  const [bizDevSort, setBizDevSort] = useState<any>({ by: 'date', order: 'desc' });
+  const [selectedBizDev, setSelectedBizDev] = useState<any>(null);
+  const [isBizDevModalOpen, setIsBizDevModalOpen] = useState(false);
+  const [bizDevModalMode, setBizDevModalMode] = useState<'add' | 'edit'>('add');
+  const [bizDevForm, setBizDevForm] = useState<any>({
+    date: new Date().toISOString().slice(0, 10),
+    executiveName: '',
+    companyName: '',
+    contactPerson: '',
+    designation: '',
+    mobileNo: '',
+    emailId: '',
+    city: '',
+    industry: '',
+    source: 'LinkedIn',
+    serviceOffered: 'Permanent Recruitment',
+    callStatus: 'Connected',
+    interested: 'No',
+    requirement: '',
+    noOfPositions: 0,
+    followUpDate: '',
+    meetingFixed: 'No',
+    proposalSent: 'No',
+    agreementSent: 'No',
+    clientStatus: 'Cold',
+    expectedRevenue: 0,
+    remarks: '',
+  });
 
   const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -196,6 +242,156 @@ export function AdminDashboard() {
     setRevenueData(mgrData.revenueData || mgrData.revenueTrend || []);
     const kpiData = mgrData.kpis || mgrData.summary || {};
     setKpis({ ...kpiData, conversionRate: kpiData.conversionRate ?? kpiData.interviewToHireRate ?? '—' });
+  };
+
+  // ── Business Development Functions ──────────────────────────────────────────
+  const loadBizDevData = async () => {
+    try {
+      setBizDevLoading(true);
+      const params: Record<string, string> = {
+        page: bizDevPage.toString(),
+        limit: bizDevLimit.toString(),
+        sortBy: bizDevSort.by,
+        sortOrder: bizDevSort.order,
+      };
+      if (bizDevSearch) params.search = bizDevSearch;
+      if (bizDevFilters.clientStatus) params.clientStatus = bizDevFilters.clientStatus;
+      if (bizDevFilters.callStatus) params.callStatus = bizDevFilters.callStatus;
+      if (bizDevFilters.serviceOffered) params.serviceOffered = bizDevFilters.serviceOffered;
+      if (bizDevFilters.executiveName) params.executiveName = bizDevFilters.executiveName;
+      if (bizDevFilters.startDate) params.startDate = bizDevFilters.startDate;
+      if (bizDevFilters.endDate) params.endDate = bizDevFilters.endDate;
+
+      const [recordsRes, statsRes] = await Promise.all([
+        api.getBizDevRecords(params),
+        api.getBizDevStats(),
+      ]);
+
+      setBizDevRecords(recordsRes.records || []);
+      setBizDevTotal(recordsRes.total || 0);
+      setBizDevStats(statsRes || {});
+    } catch (err) {
+      console.error('Failed to load business development data:', err);
+    } finally {
+      setBizDevLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'businessDev') {
+      loadBizDevData();
+    }
+  }, [activeTab, bizDevPage, bizDevSearch, bizDevFilters, bizDevSort]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleBizDevSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setBizDevLoading(true);
+      // Format followUpDate as empty if not set
+      const body = { ...bizDevForm };
+      if (!body.followUpDate) body.followUpDate = null;
+      if (bizDevModalMode === 'add') {
+        await api.createBizDevRecord(body);
+      } else {
+        await api.updateBizDevRecord(selectedBizDev._id, body);
+      }
+      setIsBizDevModalOpen(false);
+      loadBizDevData();
+    } catch (err) {
+      console.error('Failed to save business development record:', err);
+    } finally {
+      setBizDevLoading(false);
+    }
+  };
+
+  const handleBizDevDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this record?')) return;
+    try {
+      setBizDevLoading(true);
+      await api.deleteBizDevRecord(id);
+      loadBizDevData();
+    } catch (err) {
+      console.error('Failed to delete business development record:', err);
+    } finally {
+      setBizDevLoading(false);
+    }
+  };
+
+  const handleBizDevExport = async () => {
+    try {
+      const params: Record<string, string> = {};
+      if (bizDevSearch) params.search = bizDevSearch;
+      if (bizDevFilters.clientStatus) params.clientStatus = bizDevFilters.clientStatus;
+      if (bizDevFilters.callStatus) params.callStatus = bizDevFilters.callStatus;
+      if (bizDevFilters.serviceOffered) params.serviceOffered = bizDevFilters.serviceOffered;
+      if (bizDevFilters.executiveName) params.executiveName = bizDevFilters.executiveName;
+      if (bizDevFilters.startDate) params.startDate = bizDevFilters.startDate;
+      if (bizDevFilters.endDate) params.endDate = bizDevFilters.endDate;
+
+      await api.exportBizDevExcel(params);
+    } catch (err) {
+      console.error('Failed to export biz dev records:', err);
+    }
+  };
+
+  const openAddBizDevModal = () => {
+    setBizDevModalMode('add');
+    setSelectedBizDev(null);
+    setBizDevForm({
+      date: new Date().toISOString().slice(0, 10),
+      executiveName: user?.name || '',
+      companyName: '',
+      contactPerson: '',
+      designation: '',
+      mobileNo: '',
+      emailId: '',
+      city: '',
+      industry: '',
+      source: 'LinkedIn',
+      serviceOffered: 'Permanent Recruitment',
+      callStatus: 'Connected',
+      interested: 'No',
+      requirement: '',
+      noOfPositions: 0,
+      followUpDate: '',
+      meetingFixed: 'No',
+      proposalSent: 'No',
+      agreementSent: 'No',
+      clientStatus: 'Cold',
+      expectedRevenue: 0,
+      remarks: '',
+    });
+    setIsBizDevModalOpen(true);
+  };
+
+  const openEditBizDevModal = (record: any) => {
+    setBizDevModalMode('edit');
+    setSelectedBizDev(record);
+    setBizDevForm({
+      date: record.date ? new Date(record.date).toISOString().slice(0, 10) : '',
+      executiveName: record.executiveName || '',
+      companyName: record.companyName || '',
+      contactPerson: record.contactPerson || '',
+      designation: record.designation || '',
+      mobileNo: record.mobileNo || '',
+      emailId: record.emailId || '',
+      city: record.city || '',
+      industry: record.industry || '',
+      source: record.source || 'LinkedIn',
+      serviceOffered: record.serviceOffered || 'Permanent Recruitment',
+      callStatus: record.callStatus || 'Connected',
+      interested: record.interested || 'No',
+      requirement: record.requirement || '',
+      noOfPositions: record.noOfPositions || 0,
+      followUpDate: record.followUpDate ? new Date(record.followUpDate).toISOString().slice(0, 10) : '',
+      meetingFixed: record.meetingFixed || 'No',
+      proposalSent: record.proposalSent || 'No',
+      agreementSent: record.agreementSent || 'No',
+      clientStatus: record.clientStatus || 'Cold',
+      expectedRevenue: record.expectedRevenue || 0,
+      remarks: record.remarks || '',
+    });
+    setIsBizDevModalOpen(true);
   };
 
   // ── Initial full load ────────────────────────────────────────────────────────
@@ -743,7 +939,7 @@ export function AdminDashboard() {
 
                   {/* Recruiters in this team */}
                   <div className="grid sm:grid-cols-2 gap-4">
-                    {tl.recruiters.map(r => {
+                    {tl.recruiters.map((r: any) => {
                       const pct = Math.round((r.calls / r.target) * 100);
                       const sc = TL_STATUS_COLORS[r.status] || TL_STATUS_COLORS.offline;
                       return (
@@ -953,6 +1149,700 @@ export function AdminDashboard() {
             </Link>
           </div>
         </>
+      )}
+
+      {/* ══════════════ TAB: BUSINESS DEVELOPMENT ══════════════ */}
+      {activeTab === 'businessDev' && (
+        <div className="space-y-6">
+          {/* KPI Cards Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            {[
+              { label: 'Calls Today', value: bizDevStats.callsToday ?? 0, icon: Phone, color: 'blue' },
+              { label: 'Calls This Week', value: bizDevStats.callsThisWeek ?? 0, icon: Calendar, color: 'indigo' },
+              { label: 'Connected Calls', value: bizDevStats.connectedCalls ?? 0, icon: BadgeCheck, color: 'emerald' },
+              { label: 'Follow-ups Due', value: bizDevStats.followUpsDue ?? 0, icon: Clock, color: 'amber' },
+              { label: 'Meetings Scheduled', value: bizDevStats.meetingsScheduled ?? 0, icon: CalendarCheck, color: 'violet' },
+              { label: 'Proposals Pending', value: bizDevStats.proposalsPending ?? 0, icon: FileText, color: 'pink' },
+              { label: 'Agreements Pending', value: bizDevStats.agreementsPending ?? 0, icon: FileCheck, color: 'sky' },
+              { label: 'Hot Leads', value: bizDevStats.hotLeads ?? 0, icon: Flame, color: 'red' },
+              { label: 'Converted Clients', value: bizDevStats.convertedClients ?? 0, icon: UserCheck, color: 'emerald' },
+              { label: 'Expected Revenue', value: bizDevStats.expectedRevenue ? fmt(bizDevStats.expectedRevenue) : '₹0', icon: DollarSign, color: 'green' },
+              { label: 'Conversion %', value: `${bizDevStats.conversionPct ?? 0}%`, icon: TrendingUp, color: 'teal' },
+              { label: 'Avg Calls/Day', value: bizDevStats.avgCallsPerDay ?? 0, icon: Activity, color: 'slate' },
+            ].map((card, i) => {
+              const Icon = card.icon;
+              const bgColors: Record<string, string> = {
+                blue: 'bg-blue-50 text-blue-600 border-blue-100',
+                indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100',
+                emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100',
+                amber: 'bg-amber-50 text-amber-600 border-amber-100',
+                violet: 'bg-violet-50 text-violet-600 border-violet-100',
+                pink: 'bg-pink-50 text-pink-600 border-pink-100',
+                sky: 'bg-sky-50 text-sky-600 border-sky-100',
+                red: 'bg-red-50 text-red-600 border-red-100',
+                green: 'bg-green-50 text-green-600 border-green-100',
+                teal: 'bg-teal-50 text-teal-600 border-teal-100',
+                slate: 'bg-slate-100 text-slate-600 border-slate-200',
+              };
+              return (
+                <div key={i} className="bg-white rounded-xl p-4 border border-slate-100 shadow-sm flex flex-col justify-between">
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2 border ${bgColors[card.color]}`}>
+                    <Icon className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-slate-800 text-lg font-bold leading-none">{card.value}</div>
+                    <div className="text-slate-500 text-[11px] font-medium mt-1">{card.label}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Search, filters and actions bar */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 space-y-4">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
+                <div className="relative flex-1 sm:flex-initial">
+                  <input
+                    type="text"
+                    value={bizDevSearch}
+                    onChange={e => { setBizDevSearch(e.target.value); setBizDevPage(1); }}
+                    placeholder="Search company, contact..."
+                    className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs w-full sm:w-60 focus:outline-none focus:border-green-500"
+                  />
+                  <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => loadBizDevData()}
+                    className="p-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-lg border border-slate-200"
+                    title="Refresh data"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={handleBizDevExport}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Export Excel
+                  </button>
+                </div>
+              </div>
+
+              <button
+                onClick={openAddBizDevModal}
+                className="flex items-center gap-1.5 px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold ml-auto lg:ml-0"
+              >
+                <Plus className="w-3.5 h-3.5" /> Add Lead Row
+              </button>
+            </div>
+
+            {/* Filter inputs */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 pt-3 border-t border-slate-100">
+              <div>
+                <label className="block text-[10px] text-slate-500 font-semibold mb-1">Lead Temperature</label>
+                <select
+                  value={bizDevFilters.clientStatus}
+                  onChange={e => { setBizDevFilters({ ...bizDevFilters, clientStatus: e.target.value }); setBizDevPage(1); }}
+                  className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                >
+                  <option value="">All</option>
+                  <option value="Cold">Cold</option>
+                  <option value="Warm">Warm</option>
+                  <option value="Hot">Hot</option>
+                  <option value="Converted">Converted</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-500 font-semibold mb-1">Call Status</label>
+                <select
+                  value={bizDevFilters.callStatus}
+                  onChange={e => { setBizDevFilters({ ...bizDevFilters, callStatus: e.target.value }); setBizDevPage(1); }}
+                  className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                >
+                  <option value="">All</option>
+                  <option value="Connected">Connected</option>
+                  <option value="No Answer">No Answer</option>
+                  <option value="Switched Off">Switched Off</option>
+                  <option value="Busy">Busy</option>
+                  <option value="Wrong Number">Wrong Number</option>
+                  <option value="Call Back Later">Call Back Later</option>
+                  <option value="Meeting Fixed">Meeting Fixed</option>
+                  <option value="Proposal Sent">Proposal Sent</option>
+                  <option value="Not Interested">Not Interested</option>
+                  <option value="Converted">Converted</option>
+                  <option value="Existing Client">Existing Client</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-500 font-semibold mb-1">Service Offered</label>
+                <select
+                  value={bizDevFilters.serviceOffered}
+                  onChange={e => { setBizDevFilters({ ...bizDevFilters, serviceOffered: e.target.value }); setBizDevPage(1); }}
+                  className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                >
+                  <option value="">All</option>
+                  <option value="Permanent Recruitment">Permanent Recruitment</option>
+                  <option value="Contract Staffing">Contract Staffing</option>
+                  <option value="Executive Search">Executive Search</option>
+                  <option value="Healthcare Recruitment">Healthcare Recruitment</option>
+                  <option value="IT Recruitment">IT Recruitment</option>
+                  <option value="Non IT Recruitment">Non IT Recruitment</option>
+                  <option value="RPO">RPO</option>
+                  <option value="NEXORA ATS">NEXORA ATS</option>
+                  <option value="HRMS">HRMS</option>
+                  <option value="Payroll">Payroll</option>
+                  <option value="Attendance">Attendance</option>
+                  <option value="Multiple Services">Multiple Services</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-500 font-semibold mb-1">Executive Name</label>
+                <input
+                  type="text"
+                  value={bizDevFilters.executiveName}
+                  onChange={e => { setBizDevFilters({ ...bizDevFilters, executiveName: e.target.value }); setBizDevPage(1); }}
+                  placeholder="Filter Executive..."
+                  className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-500 font-semibold mb-1">Start Date</label>
+                <input
+                  type="date"
+                  value={bizDevFilters.startDate}
+                  onChange={e => { setBizDevFilters({ ...bizDevFilters, startDate: e.target.value }); setBizDevPage(1); }}
+                  className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[10px] text-slate-500 font-semibold mb-1">End Date</label>
+                <input
+                  type="date"
+                  value={bizDevFilters.endDate}
+                  onChange={e => { setBizDevFilters({ ...bizDevFilters, endDate: e.target.value }); setBizDevPage(1); }}
+                  className="w-full p-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none"
+                />
+              </div>
+            </div>
+
+            {(bizDevFilters.clientStatus || bizDevFilters.callStatus || bizDevFilters.serviceOffered || bizDevFilters.executiveName || bizDevFilters.startDate || bizDevFilters.endDate || bizDevSearch) && (
+              <div className="flex justify-end pt-2">
+                <button
+                  onClick={() => {
+                    setBizDevFilters({
+                      clientStatus: '',
+                      callStatus: '',
+                      serviceOffered: '',
+                      executiveName: '',
+                      startDate: '',
+                      endDate: '',
+                    });
+                    setBizDevSearch('');
+                    setBizDevPage(1);
+                  }}
+                  className="text-red-500 hover:text-red-700 text-xs font-semibold"
+                >
+                  Clear All Filters
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Spreadsheet Table Grid */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+            {bizDevLoading && bizDevRecords.length === 0 ? (
+              <div className="p-20 flex flex-col items-center justify-center text-slate-400">
+                <Loader2 className="w-8 h-8 animate-spin text-green-600 mb-2" />
+                <span className="text-sm">Loading spreadsheet...</span>
+              </div>
+            ) : bizDevRecords.length === 0 ? (
+              <div className="p-20 text-center text-slate-400">
+                <FileSpreadsheet className="w-12 h-12 text-slate-300 mx-auto mb-3" />
+                <p className="text-sm font-semibold">No records found</p>
+                <p className="text-xs mt-1">Try adjusting your filters or search query, or add a new row.</p>
+              </div>
+            ) : (
+              <>
+                <div className="overflow-x-auto">
+                  <table className="w-full border-collapse text-left text-xs text-slate-600">
+                    <thead className="bg-slate-50 border-b border-slate-100 text-slate-700 font-semibold uppercase text-[10px]">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold text-center w-12">Sl</th>
+                        <th className="px-4 py-3 font-semibold min-w-[100px]">Date</th>
+                        <th className="px-4 py-3 font-semibold min-w-[120px]">Executive</th>
+                        <th className="px-4 py-3 font-semibold min-w-[150px]">Company Name</th>
+                        <th className="px-4 py-3 font-semibold min-w-[120px]">Contact Person</th>
+                        <th className="px-4 py-3 font-semibold min-w-[120px]">Designation</th>
+                        <th className="px-4 py-3 font-semibold min-w-[100px]">Mobile No</th>
+                        <th className="px-4 py-3 font-semibold min-w-[150px]">Email ID</th>
+                        <th className="px-4 py-3 font-semibold min-w-[100px]">City</th>
+                        <th className="px-4 py-3 font-semibold min-w-[100px]">Industry</th>
+                        <th className="px-4 py-3 font-semibold min-w-[90px]">Source</th>
+                        <th className="px-4 py-3 font-semibold min-w-[150px]">Service Offered</th>
+                        <th className="px-4 py-3 font-semibold min-w-[120px]">Call Status</th>
+                        <th className="px-4 py-3 font-semibold text-center min-w-[80px]">Interested</th>
+                        <th className="px-4 py-3 font-semibold min-w-[150px]">Requirement</th>
+                        <th className="px-4 py-3 font-semibold text-center min-w-[80px]">Positions</th>
+                        <th className="px-4 py-3 font-semibold min-w-[100px]">Follow-up</th>
+                        <th className="px-4 py-3 font-semibold text-center min-w-[90px]">Meeting Fixed</th>
+                        <th className="px-4 py-3 font-semibold text-center min-w-[90px]">Proposal Sent</th>
+                        <th className="px-4 py-3 font-semibold text-center min-w-[90px]">Agreement Sent</th>
+                        <th className="px-4 py-3 font-semibold min-w-[100px]">Client Status</th>
+                        <th className="px-4 py-3 font-semibold min-w-[120px]">Expected Rev</th>
+                        <th className="px-4 py-3 font-semibold min-w-[200px]">Remarks</th>
+                        <th className="px-4 py-3 font-semibold text-center sticky right-0 bg-slate-50 border-l border-slate-100 min-w-[100px]">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {bizDevRecords.map((rec, index) => {
+                        const globalIndex = (bizDevPage - 1) * bizDevLimit + index + 1;
+                        let statusColor = 'bg-slate-50 text-slate-700';
+                        if (rec.clientStatus === 'Hot') statusColor = 'bg-red-50 text-red-700 border-red-100';
+                        else if (rec.clientStatus === 'Warm') statusColor = 'bg-amber-50 text-amber-700 border-amber-100';
+                        else if (rec.clientStatus === 'Cold') statusColor = 'bg-blue-50 text-blue-700 border-blue-100';
+                        else if (rec.clientStatus === 'Converted') statusColor = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+
+                        return (
+                          <tr key={rec._id} className="hover:bg-slate-50/50 transition-colors">
+                            <td className="px-4 py-3 text-center text-slate-400 font-semibold">{globalIndex}</td>
+                            <td className="px-4 py-3 whitespace-nowrap">{rec.date ? new Date(rec.date).toLocaleDateString('en-GB') : '—'}</td>
+                            <td className="px-4 py-3 font-medium text-slate-700">{rec.executiveName || '—'}</td>
+                            <td className="px-4 py-3 font-semibold text-slate-800">{rec.companyName}</td>
+                            <td className="px-4 py-3">{rec.contactPerson || '—'}</td>
+                            <td className="px-4 py-3">{rec.designation || '—'}</td>
+                            <td className="px-4 py-3">{rec.mobileNo || '—'}</td>
+                            <td className="px-4 py-3 truncate max-w-[150px]" title={rec.emailId}>{rec.emailId || '—'}</td>
+                            <td className="px-4 py-3">{rec.city || '—'}</td>
+                            <td className="px-4 py-3">{rec.industry || '—'}</td>
+                            <td className="px-4 py-3">{rec.source || '—'}</td>
+                            <td className="px-4 py-3">{rec.serviceOffered || '—'}</td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                                rec.callStatus === 'Converted' || rec.callStatus === 'Existing Client' ? 'bg-emerald-100 text-emerald-800' :
+                                rec.callStatus === 'Not Interested' || rec.callStatus === 'Wrong Number' ? 'bg-red-100 text-red-800' :
+                                rec.callStatus === 'Meeting Fixed' || rec.callStatus === 'Proposal Sent' ? 'bg-indigo-100 text-indigo-800' :
+                                'bg-slate-100 text-slate-800'
+                              }`}>
+                                {rec.callStatus}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 text-center">{rec.interested}</td>
+                            <td className="px-4 py-3 max-w-[150px] truncate" title={rec.requirement}>{rec.requirement || '—'}</td>
+                            <td className="px-4 py-3 text-center font-medium">{rec.noOfPositions || 0}</td>
+                            <td className="px-4 py-3 whitespace-nowrap text-amber-600 font-medium">
+                              {rec.followUpDate ? new Date(rec.followUpDate).toLocaleDateString('en-GB') : '—'}
+                            </td>
+                            <td className="px-4 py-3 text-center">{rec.meetingFixed}</td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`px-1.5 py-0.5 rounded font-medium text-[10px] ${
+                                rec.proposalSent === 'Yes' ? 'text-emerald-700 bg-emerald-50' :
+                                rec.proposalSent === 'Pending' ? 'text-amber-700 bg-amber-50' : 'text-slate-500'
+                              }`}>{rec.proposalSent}</span>
+                            </td>
+                            <td className="px-4 py-3 text-center">
+                              <span className={`px-1.5 py-0.5 rounded font-medium text-[10px] ${
+                                rec.agreementSent === 'Yes' ? 'text-emerald-700 bg-emerald-50' :
+                                rec.agreementSent === 'Pending' ? 'text-amber-700 bg-amber-50' : 'text-slate-500'
+                              }`}>{rec.agreementSent}</span>
+                            </td>
+                            <td className="px-4 py-3">
+                              <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${statusColor}`}>
+                                {rec.clientStatus}
+                              </span>
+                            </td>
+                            <td className="px-4 py-3 font-semibold text-slate-800">
+                              {rec.expectedRevenue ? `₹${rec.expectedRevenue.toLocaleString('en-IN')}` : '₹0'}
+                            </td>
+                            <td className="px-4 py-3 max-w-[200px] truncate" title={rec.remarks}>{rec.remarks || '—'}</td>
+                            <td className="px-4 py-3 text-center sticky right-0 bg-white border-l border-slate-100 whitespace-nowrap">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  onClick={() => openEditBizDevModal(rec)}
+                                  className="p-1 hover:bg-slate-100 text-slate-500 hover:text-green-600 rounded transition-colors"
+                                  title="Edit row"
+                                >
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button
+                                  onClick={() => handleBizDevDelete(rec._id)}
+                                  className="p-1 hover:bg-slate-100 text-slate-500 hover:text-red-600 rounded transition-colors"
+                                  title="Delete row"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Pagination footer */}
+                {bizDevTotal > bizDevLimit && (
+                  <div className="px-4 py-3 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
+                    <span className="text-[11px] text-slate-500 font-medium">
+                      Showing {((bizDevPage - 1) * bizDevLimit) + 1} to {Math.min(bizDevPage * bizDevLimit, bizDevTotal)} of {bizDevTotal} entries
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setBizDevPage(prev => Math.max(prev - 1, 1))}
+                        disabled={bizDevPage === 1}
+                        className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] rounded disabled:opacity-50"
+                      >
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => setBizDevPage(prev => Math.min(prev + 1, Math.ceil(bizDevTotal / bizDevLimit)))}
+                        disabled={bizDevPage >= Math.ceil(bizDevTotal / bizDevLimit)}
+                        className="px-2.5 py-1 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 text-[11px] rounded disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════ MODAL: ADD/EDIT BIZ DEV RECORD ══════════════ */}
+      {isBizDevModalOpen && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex justify-center items-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+              <h2 className="text-slate-800 text-sm font-bold">
+                {bizDevModalMode === 'add' ? 'Add New Business Development Lead' : 'Edit Lead Details'}
+              </h2>
+              <button onClick={() => setIsBizDevModalOpen(false)} className="text-slate-400 hover:text-slate-600">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body / Form */}
+            <form onSubmit={handleBizDevSubmit} className="flex-1 flex flex-col overflow-hidden">
+              <div className="flex-1 overflow-y-auto p-6 space-y-6">
+                
+                {/* Section 1: Company Profile */}
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-green-600 mb-3 border-b border-slate-100 pb-1.5">
+                    1. Company Profile
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Company Name <span className="text-red-500">*</span></label>
+                      <input
+                        type="text"
+                        required
+                        value={bizDevForm.companyName}
+                        onChange={e => setBizDevForm({ ...bizDevForm, companyName: e.target.value })}
+                        placeholder="e.g. Whitehorse Tech"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Contact Person</label>
+                      <input
+                        type="text"
+                        value={bizDevForm.contactPerson}
+                        onChange={e => setBizDevForm({ ...bizDevForm, contactPerson: e.target.value })}
+                        placeholder="e.g. John Doe"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Designation</label>
+                      <input
+                        type="text"
+                        value={bizDevForm.designation}
+                        onChange={e => setBizDevForm({ ...bizDevForm, designation: e.target.value })}
+                        placeholder="e.g. HR Manager"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Mobile No</label>
+                      <input
+                        type="text"
+                        value={bizDevForm.mobileNo}
+                        onChange={e => setBizDevForm({ ...bizDevForm, mobileNo: e.target.value })}
+                        placeholder="e.g. 9876543210"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Email ID</label>
+                      <input
+                        type="email"
+                        value={bizDevForm.emailId}
+                        onChange={e => setBizDevForm({ ...bizDevForm, emailId: e.target.value })}
+                        placeholder="e.g. info@company.com"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">City</label>
+                      <input
+                        type="text"
+                        value={bizDevForm.city}
+                        onChange={e => setBizDevForm({ ...bizDevForm, city: e.target.value })}
+                        placeholder="e.g. Bangalore"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Industry</label>
+                      <input
+                        type="text"
+                        value={bizDevForm.industry}
+                        onChange={e => setBizDevForm({ ...bizDevForm, industry: e.target.value })}
+                        placeholder="e.g. IT Services"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 2: Lead Context */}
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-green-600 mb-3 border-b border-slate-100 pb-1.5">
+                    2. Lead Context & Performance
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Date</label>
+                      <input
+                        type="date"
+                        value={bizDevForm.date}
+                        onChange={e => setBizDevForm({ ...bizDevForm, date: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Executive Name</label>
+                      <input
+                        type="text"
+                        value={bizDevForm.executiveName}
+                        onChange={e => setBizDevForm({ ...bizDevForm, executiveName: e.target.value })}
+                        placeholder="Executive calling"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Source</label>
+                      <select
+                        value={bizDevForm.source}
+                        onChange={e => setBizDevForm({ ...bizDevForm, source: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      >
+                        <option value="LinkedIn">LinkedIn</option>
+                        <option value="Naukri">Naukri</option>
+                        <option value="Reference">Reference</option>
+                        <option value="Website">Website</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Service Offered</label>
+                      <select
+                        value={bizDevForm.serviceOffered}
+                        onChange={e => setBizDevForm({ ...bizDevForm, serviceOffered: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      >
+                        <option value="Permanent Recruitment">Permanent Recruitment</option>
+                        <option value="Contract Staffing">Contract Staffing</option>
+                        <option value="Executive Search">Executive Search</option>
+                        <option value="Healthcare Recruitment">Healthcare Recruitment</option>
+                        <option value="IT Recruitment">IT Recruitment</option>
+                        <option value="Non IT Recruitment">Non IT Recruitment</option>
+                        <option value="RPO">RPO</option>
+                        <option value="NEXORA ATS">NEXORA ATS</option>
+                        <option value="HRMS">HRMS</option>
+                        <option value="Payroll">Payroll</option>
+                        <option value="Attendance">Attendance</option>
+                        <option value="Multiple Services">Multiple Services</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Lead Temperature (Client Status)</label>
+                      <select
+                        value={bizDevForm.clientStatus}
+                        onChange={e => setBizDevForm({ ...bizDevForm, clientStatus: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      >
+                        <option value="Cold">Cold</option>
+                        <option value="Warm">Warm</option>
+                        <option value="Hot">Hot</option>
+                        <option value="Converted">Converted</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Expected Revenue (INR)</label>
+                      <input
+                        type="number"
+                        value={bizDevForm.expectedRevenue}
+                        onChange={e => setBizDevForm({ ...bizDevForm, expectedRevenue: parseInt(e.target.value) || 0 })}
+                        placeholder="Expected deal value"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 3: Call & Sales Process */}
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-green-600 mb-3 border-b border-slate-100 pb-1.5">
+                    3. Call & Sales Process
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Call Status</label>
+                      <select
+                        value={bizDevForm.callStatus}
+                        onChange={e => setBizDevForm({ ...bizDevForm, callStatus: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      >
+                        <option value="Connected">Connected</option>
+                        <option value="No Answer">No Answer</option>
+                        <option value="Switched Off">Switched Off</option>
+                        <option value="Busy">Busy</option>
+                        <option value="Wrong Number">Wrong Number</option>
+                        <option value="Call Back Later">Call Back Later</option>
+                        <option value="Meeting Fixed">Meeting Fixed</option>
+                        <option value="Proposal Sent">Proposal Sent</option>
+                        <option value="Not Interested">Not Interested</option>
+                        <option value="Converted">Converted</option>
+                        <option value="Existing Client">Existing Client</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Interested</label>
+                      <select
+                        value={bizDevForm.interested}
+                        onChange={e => setBizDevForm({ ...bizDevForm, interested: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      >
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">No. of Positions</label>
+                      <input
+                        type="number"
+                        value={bizDevForm.noOfPositions}
+                        onChange={e => setBizDevForm({ ...bizDevForm, noOfPositions: parseInt(e.target.value) || 0 })}
+                        placeholder="Positions"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Requirement Description</label>
+                      <input
+                        type="text"
+                        value={bizDevForm.requirement}
+                        onChange={e => setBizDevForm({ ...bizDevForm, requirement: e.target.value })}
+                        placeholder="e.g. IT Recruitment requirements"
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Follow-up Date</label>
+                      <input
+                        type="date"
+                        value={bizDevForm.followUpDate}
+                        onChange={e => setBizDevForm({ ...bizDevForm, followUpDate: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Meeting Fixed</label>
+                      <select
+                        value={bizDevForm.meetingFixed}
+                        onChange={e => setBizDevForm({ ...bizDevForm, meetingFixed: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      >
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Proposal Sent</label>
+                      <select
+                        value={bizDevForm.proposalSent}
+                        onChange={e => setBizDevForm({ ...bizDevForm, proposalSent: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      >
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Agreement Sent</label>
+                      <select
+                        value={bizDevForm.agreementSent}
+                        onChange={e => setBizDevForm({ ...bizDevForm, agreementSent: e.target.value })}
+                        className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500"
+                      >
+                        <option value="Yes">Yes</option>
+                        <option value="No">No</option>
+                        <option value="Pending">Pending</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Section 4: Remarks */}
+                <div>
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-green-600 mb-3 border-b border-slate-100 pb-1.5">
+                    4. Remarks & Feedback
+                  </h3>
+                  <div>
+                    <textarea
+                      value={bizDevForm.remarks}
+                      onChange={e => setBizDevForm({ ...bizDevForm, remarks: e.target.value })}
+                      placeholder="Add remarks or notes from interaction..."
+                      rows={3}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-xs focus:outline-none focus:border-green-500 resize-none"
+                    />
+                  </div>
+                </div>
+
+              </div>
+
+              {/* Modal Footer */}
+              <div className="px-6 py-4 border-t border-slate-100 flex justify-end items-center gap-3 bg-slate-50/50">
+                <button
+                  type="button"
+                  onClick={() => setIsBizDevModalOpen(false)}
+                  className="px-4 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-semibold"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={bizDevLoading}
+                  className="flex items-center gap-1.5 px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-xs font-semibold disabled:opacity-50"
+                >
+                  {bizDevLoading && <Loader2 className="w-3 h-3 animate-spin" />}
+                  {bizDevModalMode === 'add' ? 'Add Lead' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
     </div>
   );

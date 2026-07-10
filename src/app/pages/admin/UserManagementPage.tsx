@@ -3,18 +3,22 @@ import { useNavigate } from 'react-router';
 import { UserPlus, Search, Edit3, Trash2, CheckCircle2, X, Shield, Wifi, Monitor, Eye, EyeOff, Loader2, ChevronRight, Mail, Calendar, Clock, Lock, Key } from 'lucide-react';
 import api from '../../services/api';
 
-type Role = 'recruiter' | 'tl' | 'manager' | 'admin' | 'spoc';
+type Role = 'recruiter' | 'tl' | 'manager' | 'admin' | 'spoc' | 'walkin' | 'demo_walkin';
 
 interface SystemUser {
   id: string;
   name: string;
   email: string;
   role: Role;
+  roles?: Role[];
   isWFH: boolean;
   status: 'Active' | 'Suspended';
   lastLogin: string;
   joinedDate: string;
   pseudoName?: string;
+  loginStartTime?: string;
+  loginEndTime?: string;
+  allowHomeLogin?: boolean;
 }
 
 const INITIAL_USERS: SystemUser[] = [
@@ -36,6 +40,8 @@ const ROLE_COLORS: Record<Role, string> = {
   manager: 'bg-amber-100 text-amber-700',
   admin: 'bg-red-100 text-red-700',
   spoc: 'bg-sky-100 text-sky-700',
+  walkin: 'bg-teal-100 text-teal-700',
+  demo_walkin: 'bg-indigo-100 text-indigo-700',
 };
 
 const ROLE_LABELS: Record<Role, string> = {
@@ -44,20 +50,27 @@ const ROLE_LABELS: Record<Role, string> = {
   manager: 'Manager',
   admin: 'Admin',
   spoc: 'SPOC',
+  walkin: 'Walk-In',
+  demo_walkin: 'Demo Walk-In',
 };
 
 interface AddUserForm {
   name: string;
   email: string;
   role: Role;
+  roles: Role[];
   isWFH: boolean;
   password: string;
   pseudoName?: string;
   eid?: string;
+  loginStartTime?: string;
+  loginEndTime?: string;
+  allowHomeLogin?: boolean;
 }
 
 const EMPTY_FORM: AddUserForm = {
-  name: '', email: '', role: 'recruiter', isWFH: false, password: '', pseudoName: '', eid: '',
+  name: '', email: '', role: 'recruiter', roles: ['recruiter'], isWFH: false, password: '', pseudoName: '', eid: '',
+  loginStartTime: '09:00', loginEndTime: '18:00', allowHomeLogin: true,
 };
 
 // EID Generator - Auto-generates Employee ID based on Full Name and Role
@@ -108,11 +121,15 @@ export function UserManagementPage() {
           name: u.name || '',
           email: u.email || '',
           role: u.role || 'recruiter',
+          roles: u.roles || [u.role || 'recruiter'],
           isWFH: u.isWFH ?? false,
           status: u.isActive === false ? 'Suspended' as const : 'Active' as const,
           lastLogin: u.lastLogin ? new Date(u.lastLogin).toLocaleString() : '—',
           joinedDate: u.createdAt ? new Date(u.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—',
           pseudoName: u.pseudoName || u.aliasName || '',
+          loginStartTime: u.loginStartTime || '09:00',
+          loginEndTime: u.loginEndTime || '18:00',
+          allowHomeLogin: u.allowHomeLogin ?? true,
         }));
         setUsers(list);
       } catch (err) {
@@ -145,35 +162,77 @@ export function UserManagementPage() {
     return matchSearch && matchRole && matchStatus;
   });
 
+const ROLE_ORDER: Role[] = ['walkin', 'recruiter', 'spoc', 'tl', 'manager', 'admin'];
+const getHighestRole = (roles: Role[]): Role => {
+  if (!roles || roles.length === 0) return 'recruiter';
+  let highest = roles[0];
+  roles.forEach(r => {
+    if (ROLE_ORDER.indexOf(r) > ROLE_ORDER.indexOf(highest)) {
+      highest = r;
+    }
+  });
+  return highest;
+};
+
   const handleSave = async () => {
     if (!form.name || !form.email) return;
     try {
+      const computedRole = getHighestRole(form.roles);
       if (editUser) {
-        await api.updateUser(editUser.id, { name: form.name, email: form.email, role: form.role, isWFH: form.isWFH, pseudoName: form.pseudoName });
+        await api.updateUser(editUser.id, {
+          name: form.name,
+          email: form.email,
+          role: computedRole,
+          roles: form.roles,
+          isWFH: form.isWFH,
+          pseudoName: form.pseudoName,
+          loginStartTime: form.loginStartTime,
+          loginEndTime: form.loginEndTime,
+          allowHomeLogin: form.allowHomeLogin,
+        });
         setUsers(prev => prev.map(u => u.id === editUser.id
-          ? { ...u, name: form.name, email: form.email, role: form.role, isWFH: form.isWFH, pseudoName: form.pseudoName }
+          ? {
+              ...u,
+              name: form.name,
+              email: form.email,
+              role: computedRole,
+              roles: form.roles,
+              isWFH: form.isWFH,
+              pseudoName: form.pseudoName,
+              loginStartTime: form.loginStartTime,
+              loginEndTime: form.loginEndTime,
+              allowHomeLogin: form.allowHomeLogin,
+            }
           : u
         ));
       } else {
         const res = await api.createUser({
           name: form.name,
           email: form.email,
-          role: form.role,
+          role: computedRole,
+          roles: form.roles,
           isWFH: form.isWFH,
           password: form.password,
           pseudoName: form.pseudoName,
           employeeId: generatedEID,
+          loginStartTime: form.loginStartTime,
+          loginEndTime: form.loginEndTime,
+          allowHomeLogin: form.allowHomeLogin,
         });
         const newUser: SystemUser = {
           id: generatedEID || res.employeeId || res.user?.employeeId || res._id || '',
           name: form.name,
           email: form.email,
-          role: form.role,
+          role: computedRole,
+          roles: form.roles,
           isWFH: form.isWFH,
           status: 'Active',
           lastLogin: '—',
           joinedDate: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
           pseudoName: form.pseudoName,
+          loginStartTime: form.loginStartTime,
+          loginEndTime: form.loginEndTime,
+          allowHomeLogin: form.allowHomeLogin,
         };
         setUsers(prev => [...prev, newUser]);
       }
@@ -192,7 +251,19 @@ export function UserManagementPage() {
 
   const handleEdit = (user: SystemUser) => {
     setEditUser(user);
-    setForm({ name: user.name, email: user.email, role: user.role, isWFH: user.isWFH, password: '', pseudoName: user.pseudoName || '', eid: user.id });
+    setForm({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      roles: user.roles || [user.role],
+      isWFH: user.isWFH,
+      password: '',
+      pseudoName: user.pseudoName || '',
+      eid: user.id,
+      loginStartTime: user.loginStartTime || '09:00',
+      loginEndTime: user.loginEndTime || '18:00',
+      allowHomeLogin: user.allowHomeLogin ?? true,
+    });
     setShowModal(true);
   };
 
@@ -518,8 +589,8 @@ export function UserManagementPage() {
       {/* Add/Edit User Modal */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40">
-          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-5">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-md max-h-[90vh] flex flex-col">
+            <div className="flex items-center justify-between mb-5 flex-shrink-0">
               <h3 className="text-slate-800" style={{ fontWeight: 700 }}>
                 {editUser ? 'Edit User' : 'Add New User'}
               </h3>
@@ -529,12 +600,12 @@ export function UserManagementPage() {
             </div>
 
             {saved && (
-              <div className="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-emerald-700 text-sm">
+              <div className="mb-4 flex items-center gap-2 bg-emerald-50 border border-emerald-200 rounded-lg px-4 py-3 text-emerald-700 text-sm flex-shrink-0">
                 <CheckCircle2 className="w-4 h-4" /> {editUser ? 'Changes saved!' : 'User added!'}
               </div>
             )}
 
-            <div className="space-y-4">
+            <div className="space-y-4 overflow-y-auto pr-1.5 flex-1 min-h-0">
               <div>
                 <label className="block text-xs text-slate-500 uppercase tracking-wide mb-1.5" style={{ fontWeight: 600 }}>Full Name *</label>
                 <input
@@ -587,32 +658,84 @@ export function UserManagementPage() {
                 />
                 <p className="text-xs text-slate-400 mt-1">Optional: Enter a nickname or alias for this user</p>
               </div>
+              <div>
+                <label className="block text-xs text-slate-500 uppercase tracking-wide mb-2" style={{ fontWeight: 600 }}>Roles (Select all that apply) *</label>
+                <div className="grid grid-cols-3 gap-2 px-3 py-2.5 border border-slate-200 rounded-lg bg-slate-50">
+                  {([
+                    { val: 'recruiter', label: 'Recruiter' },
+                    { val: 'tl', label: 'Team Lead' },
+                    { val: 'manager', label: 'Manager' },
+                    { val: 'admin', label: 'Admin' },
+                    { val: 'spoc', label: 'SPOC' },
+                    { val: 'walkin', label: 'Walk-In' }
+                  ] as const).map(({ val, label }) => {
+                    const isChecked = form.roles?.includes(val);
+                    return (
+                      <label key={val} className="flex items-center gap-1.5 text-xs text-slate-700 cursor-pointer select-none font-semibold">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            setForm(f => {
+                              const currentRoles = f.roles || [];
+                              const updated = currentRoles.includes(val)
+                                ? currentRoles.filter(r => r !== val)
+                                : [...currentRoles, val];
+                              return { ...f, roles: updated, role: getHighestRole(updated) };
+                            });
+                          }}
+                          className="w-3.5 h-3.5 text-green-600 focus:ring-green-500 border-slate-300 rounded"
+                        />
+                        {label}
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-500 uppercase tracking-wide mb-1.5" style={{ fontWeight: 600 }}>Work Type</label>
+                <select
+                  value={form.isWFH ? 'wfh' : 'office'}
+                  onChange={e => setForm(f => ({ ...f, isWFH: e.target.value === 'wfh' }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-green-400 bg-white"
+                >
+                  <option value="office">Office</option>
+                  <option value="wfh">WFH (OTP required)</option>
+                </select>
+              </div>
+
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs text-slate-500 uppercase tracking-wide mb-1.5" style={{ fontWeight: 600 }}>Role *</label>
-                  <select
-                    value={form.role}
-                    onChange={e => setForm(f => ({ ...f, role: e.target.value as Role }))}
+                  <label className="block text-xs text-slate-500 uppercase tracking-wide mb-1.5" style={{ fontWeight: 600 }}>Login Start Time</label>
+                  <input
+                    type="time"
+                    value={form.loginStartTime || '09:00'}
+                    onChange={e => setForm(f => ({ ...f, loginStartTime: e.target.value }))}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-green-400 bg-white"
-                  >
-                    <option value="recruiter">Recruiter</option>
-                    <option value="tl">Team Lead</option>
-                    <option value="manager">Manager</option>
-                    <option value="admin">Admin</option>
-                    <option value="spoc">SPOC</option>
-                  </select>
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 uppercase tracking-wide mb-1.5" style={{ fontWeight: 600 }}>Work Type</label>
-                  <select
-                    value={form.isWFH ? 'wfh' : 'office'}
-                    onChange={e => setForm(f => ({ ...f, isWFH: e.target.value === 'wfh' }))}
+                  <label className="block text-xs text-slate-500 uppercase tracking-wide mb-1.5" style={{ fontWeight: 600 }}>Login Cut-off Time</label>
+                  <input
+                    type="time"
+                    value={form.loginEndTime || '18:00'}
+                    onChange={e => setForm(f => ({ ...f, loginEndTime: e.target.value }))}
                     className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-green-400 bg-white"
-                  >
-                    <option value="office">Office</option>
-                    <option value="wfh">WFH (OTP required)</option>
-                  </select>
+                  />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs text-slate-500 uppercase tracking-wide mb-1.5" style={{ fontWeight: 600 }}>Allow WFH/Home Login</label>
+                <select
+                  value={form.allowHomeLogin ? 'allow' : 'block'}
+                  onChange={e => setForm(f => ({ ...f, allowHomeLogin: e.target.value === 'allow' }))}
+                  className="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm outline-none focus:border-green-400 bg-white"
+                >
+                  <option value="allow">Allowed (requires OTP if WFH)</option>
+                  <option value="block">Blocked (avoids home/remote login)</option>
+                </select>
               </div>
               {!editUser && (
                 <div>
@@ -637,7 +760,7 @@ export function UserManagementPage() {
               )}
             </div>
 
-            <div className="flex gap-2 mt-5">
+            <div className="flex gap-2 mt-5 flex-shrink-0">
               <button
                 onClick={handleSave}
                 className="flex-1 py-2.5 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700"

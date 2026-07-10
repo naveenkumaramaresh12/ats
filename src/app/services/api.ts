@@ -1213,6 +1213,51 @@ class ApiService {
       body: formData,
     });
   }
+
+  // ─── Business Development ───
+  async getBizDevRecords(params: Record<string, string> = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request<any>(`/business-development${query ? `?${query}` : ''}`);
+  }
+
+  async getBizDevStats() {
+    return this.request<any>('/business-development/stats');
+  }
+
+  async createBizDevRecord(data: Record<string, any>) {
+    return this.request<any>('/business-development', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async updateBizDevRecord(id: string, data: Record<string, any>) {
+    return this.request<any>(`/business-development/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    });
+  }
+
+  async deleteBizDevRecord(id: string) {
+    return this.request<any>(`/business-development/${id}`, {
+      method: 'DELETE',
+    });
+  }
+
+  async exportBizDevExcel(params: Record<string, string> = {}) {
+    const query  = new URLSearchParams(params).toString();
+    const url    = `${API_BASE}/business-development/export${query ? `?${query}` : ''}`;
+    const res    = await fetch(url, {
+      headers: { Authorization: `Bearer ${this.getToken()}` },
+    });
+    if (!res.ok) throw new Error('Export failed');
+    const blob     = await res.blob();
+    const link     = document.createElement('a');
+    link.href      = URL.createObjectURL(blob);
+    link.download  = `Business_Development_${new Date().toISOString().slice(0, 10)}.xlsx`;
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }
 }
 
 export const api = new ApiService();

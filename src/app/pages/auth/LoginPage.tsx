@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import { useAuth, ROLE_DASHBOARD } from '../../context/AuthContext';
 import api from '../../services/api';
-import logoImg from '../../../assets/Logo.jpeg';
+import logoImg from '../../../assets/Logo.png';
 import { FaceVerificationModal } from '../../components/attendance/FaceVerificationModal';
 import * as faceapi from '@vladmandic/face-api';
 

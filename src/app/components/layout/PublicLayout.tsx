@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useLocation, Outlet } from 'react-router';
 import { Menu, X } from 'lucide-react';
-import logoImg from '../../../assets/Logo.jpeg';
+import logoImg from '../../../assets/Logo.png';
 import { ChatbotWidget } from '../ui/ChatbotWidget';
 
 const navLinks = [

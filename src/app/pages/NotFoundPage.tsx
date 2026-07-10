@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router';
 import { Home, ArrowLeft, Search } from 'lucide-react';
-import logoImg from '../../assets/Logo.jpeg';
+import logoImg from '../../assets/Logo.png';
 
 export function NotFoundPage() {
   const navigate = useNavigate();

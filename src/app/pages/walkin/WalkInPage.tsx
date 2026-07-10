@@ -4,7 +4,7 @@ import {
   CheckCircle2, Upload, User, Phone, Mail, Briefcase,
   Loader2, AlertCircle, MapPin, Calendar, Award, Send, Info, Sparkles,
 } from 'lucide-react';
-import logoImg from '../../../assets/Logo.jpeg';
+import logoImg from '../../../assets/Logo.png';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 
