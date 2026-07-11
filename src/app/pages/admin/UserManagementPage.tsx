@@ -617,8 +617,8 @@ const getHighestRole = (roles: Role[]): Role => {
                   <label className="block text-xs text-slate-500 uppercase tracking-wide mb-1.5" style={{ fontWeight: 600 }}>Employee ID (Auto-Generated)</label>
                   <div className="flex items-center gap-2 px-3 py-2.5 border border-dashed border-green-200 rounded-lg bg-green-50">
                     <Lock className="w-3.5 h-3.5 text-green-400 flex-shrink-0" />
-                    <span className={`text-sm font-mono ${generatedEID ? 'text-green-700 font-semibold' : 'text-slate-400 italic'}`}>
-                      {generatedEID || 'Enter name and role to generate'}
+                    <span className="text-sm font-mono text-green-700 font-semibold">
+                      WHXXXXXX (Auto-assigned sequentially on save)
                     </span>
                   </div>
                   <p className="text-xs text-slate-500 mt-1">Format: WH000001</p>
