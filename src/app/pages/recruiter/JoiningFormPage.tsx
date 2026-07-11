@@ -140,7 +140,6 @@ export function JoiningFormPage() {
   const [serverEmployeeId, setServerEmployeeId] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [age, setAge] = useState(0);
-  const isLocked = !!form.isApproved && user?.role !== 'admin';
   const [parsingResume, setParsingResume] = useState(false);
   const [recruiters, setRecruiters] = useState<any[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -233,6 +232,7 @@ export function JoiningFormPage() {
   });
 
   const [form, setForm] = useState<JoiningFormData>(getInitialForm());
+  const isLocked = !!form.isApproved && user?.role !== 'admin';
   const [expandedSections, setExpandedSections] = useState({
     personal: true,
     address: false,
