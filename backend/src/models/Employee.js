@@ -50,6 +50,7 @@ const employeeSchema = new mongoose.Schema({
   aadhaarNumber: { type: String, trim: true },
   candidateRef: { type: mongoose.Schema.Types.ObjectId, ref: 'Candidate' },
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  isApproved: { type: Boolean, default: false },
 }, { timestamps: true });
 
 employeeSchema.index({ fullName: 'text', email: 'text' });

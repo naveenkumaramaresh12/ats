@@ -31,6 +31,7 @@ interface Employee {
   aadhaarNumber?: string;
   createdBy?: { name?: string; employeeId?: string };
   candidateRef?: { name?: string; status?: string };
+  isApproved?: boolean;
   createdAt: string;
 }
 
@@ -76,6 +77,21 @@ function DetailPanel({ emp, onClose, isAdmin }: { emp: Employee; onClose: () => 
     }
   };
 
+  const handleApprove = async () => {
+    if (!window.confirm(`Are you sure you want to approve ${emp.fullName}'s details? This will lock their joining form and prevent them from making further edits.`)) return;
+    setSaving(true);
+    setError('');
+    try {
+      await api.updateJoining(emp._id, { isApproved: true });
+      emp.isApproved = true;
+      onClose();
+    } catch (err: any) {
+      setError(err.message || 'Failed to approve');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-40 flex">
       <div className="flex-1 bg-black/30" onClick={onClose} />
@@ -84,9 +100,20 @@ function DetailPanel({ emp, onClose, isAdmin }: { emp: Employee; onClose: () => 
         <div className="sticky top-0 bg-white border-b border-slate-100 px-6 py-4 flex items-center justify-between z-10">
           <div className="flex-1">
             <h2 className="text-slate-800" style={{ fontWeight: 700, fontSize: '1.1rem' }}>{editMode ? 'Edit Recruiter Record' : emp.fullName}</h2>
-            <span className="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full mt-1" style={{ fontWeight: 600 }}>
-              <Hash className="w-3 h-3" />{emp.employeeId}
-            </span>
+            <div className="flex items-center gap-2 mt-1">
+              <span className="inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs px-2 py-0.5 rounded-full" style={{ fontWeight: 600 }}>
+                <Hash className="w-3 h-3" />{emp.employeeId}
+              </span>
+              {emp.isApproved ? (
+                <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                  Approved & Locked
+                </span>
+              ) : (
+                <span className="inline-flex items-center gap-1 bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                  Pending Approval
+                </span>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-2">
             {!editMode && isAdmin && (
@@ -283,6 +310,17 @@ function DetailPanel({ emp, onClose, isAdmin }: { emp: Employee; onClose: () => 
             </>
           )}
         </div>
+        {!editMode && isAdmin && !emp.isApproved && (
+          <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end">
+            <button
+              onClick={handleApprove}
+              disabled={saving}
+              className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 transition-colors text-xs font-semibold"
+            >
+              <FileCheck className="w-3.5 h-3.5" /> Approve & Lock Record
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -453,7 +491,7 @@ export function JoiningSubmissionsPage() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-100">
-                      {['Employee ID', 'Name', 'Role', 'Department', 'Joining Date', 'Phone', 'Submitted By', 'Date Added', ''].map(h => (
+                      {['Employee ID', 'Name', 'Role', 'Department', 'Joining Date', 'Phone', 'Approval', 'Date Added', ''].map(h => (
                         <th key={h} className="px-4 py-3 text-left text-xs text-slate-500 uppercase tracking-wide" style={{ fontWeight: 600 }}>{h}</th>
                       ))}
                     </tr>
@@ -499,8 +537,16 @@ export function JoiningSubmissionsPage() {
                             <Phone className="w-3 h-3 text-slate-300" /> {emp.phone}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-slate-500 text-xs">
-                          {emp.createdBy?.name || '—'}
+                        <td className="px-4 py-3">
+                          {emp.isApproved ? (
+                            <span className="inline-flex items-center bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                              Approved
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-semibold">
+                              Pending
+                            </span>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
                           {fmtDate(emp.createdAt)}
@@ -562,7 +608,7 @@ export function JoiningSubmissionsPage() {
       </div>
 
       {/* Detail Panel */}
-      {selected && <DetailPanel emp={selected} onClose={() => setSelected(null)} isAdmin={isAdmin} />}
+      {selected && <DetailPanel emp={selected} onClose={() => { setSelected(null); load(); }} isAdmin={isAdmin} />}
     </div>
   );
 }

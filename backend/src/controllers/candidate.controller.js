@@ -1826,9 +1826,15 @@ exports.createOrUpdateJoiningForm = async (req, res, next) => {
       employee = await Employee.findOne({ employeeId });
       if (!employee) return res.status(404).json({ message: 'Employee record not found' });
       
-      // Restrict editing of existing submitted records to admin only!
-      if (req.user.role !== 'admin') {
-        return res.status(403).json({ message: 'Only administrators are allowed to edit submitted joining records.' });
+      // If approved, only admin can edit!
+      if (employee.isApproved && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'This joining record has already been approved and locked. Only administrators can make edits.' });
+      }
+      
+      // If not approved, the creator/employee can edit, but other non-admins cannot
+      const isOwner = String(employee.createdBy || '') === String(req.user._id) || employee.employeeId === req.user.employeeId;
+      if (!isOwner && req.user.role !== 'admin') {
+        return res.status(403).json({ message: 'Only administrators are allowed to edit other employees\' records.' });
       }
     }
 

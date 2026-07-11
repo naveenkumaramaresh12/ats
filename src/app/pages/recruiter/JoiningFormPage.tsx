@@ -114,6 +114,7 @@ interface JoiningFormData {
 
   // Section 6: References
   references: ReferenceEntry[];
+  isApproved?: boolean;
 }
 
 // Helper function to calculate age from DOB
@@ -139,6 +140,7 @@ export function JoiningFormPage() {
   const [serverEmployeeId, setServerEmployeeId] = useState('');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [age, setAge] = useState(0);
+  const isLocked = !!form.isApproved && user?.role !== 'admin';
   const [parsingResume, setParsingResume] = useState(false);
   const [recruiters, setRecruiters] = useState<any[]>([]);
   const photoInputRef = useRef<HTMLInputElement>(null);
@@ -240,21 +242,18 @@ export function JoiningFormPage() {
     references: false,
   });
 
-  // Load existing form if editing
+  // Load existing form or auto-populate on mount
   useEffect(() => {
     if (paramEmployeeId) {
       loadJoiningForm(paramEmployeeId);
-    }
-  }, [paramEmployeeId]);
-
-  // Auto-populate from Employee DB, JR, Salary module on mount
-  useEffect(() => {
-    if (!paramEmployeeId) {
+    } else if (user?.employeeId) {
+      loadJoiningForm(user.employeeId);
+    } else {
       autoPopulate();
     }
     // Load recruiters for Source of Interview dropdown
     loadRecruiters();
-  }, []);
+  }, [paramEmployeeId, user]);
 
   const loadRecruiters = async () => {
     try {
@@ -617,6 +616,17 @@ export function JoiningFormPage() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        {isLocked && (
+          <div className="bg-amber-50 border border-amber-200 p-4 rounded-xl flex items-start gap-3 mb-4">
+            <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+            <div>
+              <p className="text-amber-800 text-sm font-semibold">Approved & Locked</p>
+              <p className="text-slate-600 text-xs mt-0.5">Your joining form has been approved by the administrator and is locked for edits. Please contact Admin if you need to modify anything.</p>
+            </div>
+          </div>
+        )}
+        
+        <fieldset disabled={isLocked} className="space-y-4 contents">
 
         {/* ── RESUME UPLOAD ── */}
         <div className="bg-gradient-to-r from-blue-50 to-cyan-50 rounded-xl border border-blue-200 p-5 space-y-3">
@@ -1138,6 +1148,8 @@ export function JoiningFormPage() {
           </div>
         </CollapsibleSection>
 
+        </fieldset>
+
         {/* Submit Button */}
         <div className="flex justify-end gap-3 pt-6 border-t border-slate-200">
           <button
@@ -1147,14 +1159,16 @@ export function JoiningFormPage() {
           >
             Cancel
           </button>
-          <button
-            type="submit"
-            disabled={submitting}
-            className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm" style={{ fontWeight: 600 }}
-          >
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {submitting ? 'Submitting...' : 'Submit Comprehensive Form'}
-          </button>
+          {!isLocked && (
+            <button
+              type="submit"
+              disabled={submitting}
+              className="flex items-center gap-2 px-6 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 text-sm" style={{ fontWeight: 600 }}
+            >
+              {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+              {submitting ? 'Submitting...' : 'Submit Comprehensive Form'}
+            </button>
+          )}
         </div>
       </form>
     </div>
