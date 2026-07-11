@@ -232,9 +232,9 @@ export function LoginPage() {
                 </p>
                 <div className="flex flex-wrap gap-2 justify-center">
                   {[
-                    { label: 'Admin', id: 'EMP001', pw: 'Password2026!' },
-                    { label: 'TL', id: 'EMP006', pw: 'password123' },
-                    { label: 'Recruiter', id: 'EMP002', pw: 'password123' }
+                    { label: 'Admin', id: 'WH000001', pw: 'Password2026!' },
+                    { label: 'TL', id: 'WH000003', pw: 'Password2026!' },
+                    { label: 'Recruiter', id: 'WH000002', pw: 'Password2026!' }
                   ].map((dev, idx) => (
                     <button
                       key={idx}
