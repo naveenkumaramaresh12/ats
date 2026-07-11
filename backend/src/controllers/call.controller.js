@@ -93,6 +93,15 @@ exports.logOutcome = async (req, res, next) => {
     // Update candidate status based on outcome
     const candidate = await Candidate.findById(call.candidate);
     if (candidate) {
+      // Add the call log as a candidate note so it displays in their history and registers on the dashboards
+      const callNoteText = `[Call Outcome: ${outcome}]${notes ? ` - ${notes}` : ''}`;
+      candidate.notes.push({
+        text: callNoteText,
+        addedBy: req.user._id,
+        addedByName: req.user.name,
+        createdAt: new Date(),
+      });
+
       const statusMap = {
         'Interested': 'Interested',
         'Not Interested': 'Rejected',
@@ -103,8 +112,8 @@ exports.logOutcome = async (req, res, next) => {
       };
       if (statusMap[outcome]) {
         candidate.status = statusMap[outcome];
-        await candidate.save();
       }
+      await candidate.save();
     }
 
     await createLog({

@@ -144,6 +144,14 @@ mongoose.connect(MONGODB_URI)
       console.error('Error seeding recruiter portals:', seedErr);
     }
 
+    // Start candidate archiving scheduler (prunes records > 1 year)
+    try {
+      const { startArchiveScheduler } = require('./utils/archiveScheduler');
+      startArchiveScheduler();
+    } catch (archiveErr) {
+      console.error('Error starting archive scheduler:', archiveErr);
+    }
+
     app.listen(PORT, () => {
       console.log(`ATS Backend running on port ${PORT}`);
     });

@@ -35,8 +35,8 @@ let lastUsedCandidateIdNum = null;
 
 const generateEmployeeId = async (Employee, User) => {
   const START = 1;
-  const PREFIX = 'EMP';
-  const regex = { $regex: /^(EMP|emp)\d+$/i };
+  const PREFIX = 'WH';
+  const regex = { $regex: /^(WH|wh)\d+$/i };
 
   if (lastUsedEmployeeIdNum === null) {
     if (!employeeIdPromise) {
@@ -48,7 +48,7 @@ const generateEmployeeId = async (Employee, User) => {
 
         const extractNum = (id) => {
           if (!id) return 0;
-          const match = id.match(/^(?:EMP|emp)(\d+)$/i);
+          const match = id.match(/^(?:WH|wh)(\d+)$/i);
           return match ? parseInt(match[1], 10) : 0;
         };
 
@@ -70,13 +70,13 @@ const generateEmployeeId = async (Employee, User) => {
   }
 
   lastUsedEmployeeIdNum++;
-  return `${PREFIX}${String(lastUsedEmployeeIdNum).padStart(3, '0')}`;
+  return `${PREFIX}${String(lastUsedEmployeeIdNum).padStart(6, '0')}`;
 };
 
 const generateCandidateId = async (Candidate) => {
   const START = 1;
-  const PREFIX = 'CAND';
-  const regex = { $regex: /^(CAND|cand)\d+$/i };
+  const PREFIX = 'CAN';
+  const regex = { $regex: /^(CAN|can)\d+$/i };
 
   if (lastUsedCandidateIdNum === null) {
     if (!candidateIdPromise) {
@@ -85,7 +85,7 @@ const generateCandidateId = async (Candidate) => {
 
         const extractNum = (id) => {
           if (!id) return 0;
-          const match = id.match(/^(?:CAND|cand)(\d+)$/i);
+          const match = id.match(/^(?:CAN|can)(\d+)$/i);
           return match ? parseInt(match[1], 10) : 0;
         };
 
@@ -101,7 +101,7 @@ const generateCandidateId = async (Candidate) => {
   }
 
   lastUsedCandidateIdNum++;
-  return `${PREFIX}${String(lastUsedCandidateIdNum).padStart(3, '0')}`;
+  return `${PREFIX}${String(lastUsedCandidateIdNum).padStart(7, '0')}`;
 };
 
 /**

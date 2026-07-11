@@ -76,20 +76,8 @@ const EMPTY_FORM: AddUserForm = {
 // EID Generator - Auto-generates Employee ID based on Full Name and Role
 function generateEID(fullName: string, role: Role): string {
   if (!fullName.trim()) return '';
-
-  // Extract initials from name
-  const nameParts = fullName.trim().split(' ').filter(p => p.length > 0);
-  const initials = nameParts.map(p => p[0].toUpperCase()).join('');
-
-  // Always use 'EMP' prefix
-  const prefix = 'EMP';
-
-  // Generate sequential number (in real app, fetch from DB)
-  // For now using timestamp-based unique number
-  const timestamp = Date.now().toString().slice(-3);
-
-  // Format: PREFIX-SEQ-INITIALS (e.g., EMP-001-AS)
-  return `${prefix}-${timestamp}-${initials}`.toUpperCase();
+  const mockSeq = Date.now().toString().slice(-4);
+  return `WH00${mockSeq}`;
 }
 
 export function UserManagementPage() {
@@ -633,7 +621,7 @@ const getHighestRole = (roles: Role[]): Role => {
                       {generatedEID || 'Enter name and role to generate'}
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 mt-1">Format: EMP-SEQ-INITIALS (e.g., EMP-001-AS)</p>
+                  <p className="text-xs text-slate-500 mt-1">Format: WH000001</p>
                 </div>
               )}
               <div>
