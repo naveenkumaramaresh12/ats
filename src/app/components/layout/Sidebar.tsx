@@ -1,5 +1,6 @@
 import { Link, useLocation, useNavigate } from 'react-router';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import api from '../../services/api';
 import {
   LayoutDashboard, Users, UserCheck, Phone, ClipboardList,
   BarChart2, FileText, Shield, Clock, LogOut,
@@ -111,6 +112,19 @@ export function Sidebar({ onClose }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const [showCheckOutFaceModal, setShowCheckOutFaceModal] = useState(false);
+  const [joiningApproved, setJoiningApproved] = useState(false);
+
+  useEffect(() => {
+    if (user && ['recruiter', 'tl'].includes(user.role) && user.employeeId) {
+      api.getJoiningFormAutoFillData?.(user.employeeId)
+        .then((data: any) => {
+          if (data && data.isApproved) {
+            setJoiningApproved(true);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
 
   if (!user) return null;
 
@@ -129,6 +143,9 @@ export function Sidebar({ onClose }: SidebarProps) {
   const seenHrefs = new Set<string>();
   const filteredNav = rawFilteredNav.filter(item => {
     if (seenHrefs.has(item.href)) {
+      return false;
+    }
+    if (item.href === '/recruiter/joining' && joiningApproved && user.role !== 'admin') {
       return false;
     }
     seenHrefs.add(item.href);

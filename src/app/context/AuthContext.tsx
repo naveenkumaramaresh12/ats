@@ -13,6 +13,7 @@ export interface AuthUser {
   isWFH: boolean;
   avatar: string;
   faceDescriptor?: number[];
+  employeeId?: string;
 }
 
 interface AuthContextType {
