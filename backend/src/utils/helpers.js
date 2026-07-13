@@ -177,4 +177,29 @@ const getKolkataDate = (date = new Date()) => {
   return new Date(year, month, day, hour, minute, second);
 };
 
-module.exports = { generateOTP, sendOTP, generateWalkInToken, generateEmployeeId, generateCandidateId, getDateRange, getKolkataDate };
+/**
+ * Check if a time HH:MM falls within a start/end HH:MM window
+ */
+const isTimeInWindow = (current, start, end) => {
+  const toMins = (timeStr) => {
+    const [h, m] = timeStr.split(':').map(Number);
+    return h * 60 + m;
+  };
+  
+  const currentMins = toMins(current);
+  const startMins = toMins(start);
+  let endMins = toMins(end);
+  
+  if (endMins === 0) {
+    endMins = 24 * 60; // 00:00 is midnight
+  }
+  
+  if (endMins < startMins) {
+    // Overnight overlap (e.g. 09:00 to 02:00)
+    return currentMins >= startMins || currentMins <= endMins;
+  }
+  
+  return currentMins >= startMins && currentMins <= endMins;
+};
+
+module.exports = { generateOTP, sendOTP, generateWalkInToken, generateEmployeeId, generateCandidateId, getDateRange, getKolkataDate, isTimeInWindow };

@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
 const { createLog } = require('../utils/auditLogger');
-const { generateOTP, sendOTP, getKolkataDate } = require('../utils/helpers');
+const { generateOTP, sendOTP, getKolkataDate, isTimeInWindow } = require('../utils/helpers');
 
 // POST /api/auth/login
 exports.login = async (req, res, next) => {
@@ -41,7 +41,7 @@ exports.login = async (req, res, next) => {
       const startTime = user.loginStartTime || '09:00';
       const endTime = user.loginEndTime || '18:00';
 
-      if (currentHHMM < startTime || currentHHMM > endTime) {
+      if (!isTimeInWindow(currentHHMM, startTime, endTime)) {
         return res.status(403).json({
           message: `Access denied: Your allowed login window is between ${startTime} and ${endTime}. Current local time is ${currentHHMM}.`
         });
