@@ -150,4 +150,31 @@ const getDateRange = (range, customStart, customEnd) => {
   return { start, end };
 };
 
-module.exports = { generateOTP, sendOTP, generateWalkInToken, generateEmployeeId, generateCandidateId, getDateRange };
+/**
+ * Get date parts in Asia/Kolkata timezone (IST)
+ */
+const getKolkataDate = (date = new Date()) => {
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Asia/Kolkata',
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    hour12: false
+  });
+  const parts = formatter.formatToParts(date);
+  const findPart = (type) => parseInt(parts.find(p => p.type === type).value, 10);
+  
+  const year = findPart('year');
+  const month = findPart('month') - 1; // 0-indexed in JS Dates
+  const day = findPart('day');
+  const hour = findPart('hour');
+  const minute = findPart('minute');
+  const second = findPart('second');
+  
+  return new Date(year, month, day, hour, minute, second);
+};
+
+module.exports = { generateOTP, sendOTP, generateWalkInToken, generateEmployeeId, generateCandidateId, getDateRange, getKolkataDate };

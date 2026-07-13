@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const Attendance = require('../models/Attendance');
 const { createLog } = require('../utils/auditLogger');
-const { generateOTP, sendOTP } = require('../utils/helpers');
+const { generateOTP, sendOTP, getKolkataDate } = require('../utils/helpers');
 
 // POST /api/auth/login
 exports.login = async (req, res, next) => {
@@ -33,9 +33,9 @@ exports.login = async (req, res, next) => {
 
     // Access Control: Cutoff login hours and WFH allowances (except Admin role)
     if (user.role !== 'admin') {
-      const now = new Date();
-      const currentHour = now.getHours();
-      const currentMin = now.getMinutes();
+      const localNow = getKolkataDate();
+      const currentHour = localNow.getHours();
+      const currentMin = localNow.getMinutes();
       const currentHHMM = `${String(currentHour).padStart(2, '0')}:${String(currentMin).padStart(2, '0')}`;
 
       const startTime = user.loginStartTime || '09:00';
@@ -63,9 +63,10 @@ exports.login = async (req, res, next) => {
     });
 
     // Detect late login (after 09:30 on a working day)
-    const loginHour = loginTime.getHours();
-    const loginMin  = loginTime.getMinutes();
-    const loginDay  = loginTime.getDay();
+    const localLoginTime = getKolkataDate(loginTime);
+    const loginHour = localLoginTime.getHours();
+    const loginMin  = localLoginTime.getMinutes();
+    const loginDay  = localLoginTime.getDay();
     const isWorkingDay = loginDay !== 0 && loginDay !== 6;
     const isLateLogin  = isWorkingDay && (loginHour > 9 || (loginHour === 9 && loginMin > 30));
     const loginHHMM    = `${String(loginHour).padStart(2,'0')}:${String(loginMin).padStart(2,'0')}`;
@@ -115,9 +116,10 @@ exports.logout = async (req, res, next) => {
     }
 
     // Detect early logout (before 18:00 on a working day)
-    const logoutHour = logoutTime.getHours();
-    const logoutMin  = logoutTime.getMinutes();
-    const logoutDay  = logoutTime.getDay();
+    const localLogoutTime = getKolkataDate(logoutTime);
+    const logoutHour = localLogoutTime.getHours();
+    const logoutMin  = localLogoutTime.getMinutes();
+    const logoutDay  = localLogoutTime.getDay();
     const isLogoutWorkingDay = logoutDay !== 0 && logoutDay !== 6;
     const isEarlyLogout      = isLogoutWorkingDay && logoutHour < 18;
     const logoutHHMM         = `${String(logoutHour).padStart(2,'0')}:${String(logoutMin).padStart(2,'0')}`;

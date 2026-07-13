@@ -2,12 +2,13 @@ const Attendance = require('../models/Attendance');
 const Holiday = require('../models/Holiday');
 const User = require('../models/User');
 const { createLog } = require('../utils/auditLogger');
+const { getKolkataDate } = require('../utils/helpers');
 
 // GET /api/attendance/today — check if current user has marked attendance today
 exports.todayStatus = async (req, res, next) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const localNow = getKolkataDate();
+    const today = new Date(Date.UTC(localNow.getFullYear(), localNow.getMonth(), localNow.getDate(), 0, 0, 0, 0));
 
     const record = await Attendance.findOne({ user: req.user._id, date: today });
 
@@ -31,8 +32,8 @@ exports.mark = async (req, res, next) => {
   try {
     const { isWFH = false } = req.body;
     const now = new Date();
-    const today = new Date(now);
-    today.setHours(0, 0, 0, 0);
+    const localNow = getKolkataDate(now);
+    const today = new Date(Date.UTC(localNow.getFullYear(), localNow.getMonth(), localNow.getDate(), 0, 0, 0, 0));
 
     let record = await Attendance.findOne({ user: req.user._id, date: today });
 
@@ -55,7 +56,8 @@ exports.mark = async (req, res, next) => {
       });
     }
 
-    const hhmm = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+    const localMarkNow = getKolkataDate(now);
+    const hhmm = `${String(localMarkNow.getHours()).padStart(2,'0')}:${String(localMarkNow.getMinutes()).padStart(2,'0')}`;
     await createLog({
       type: 'attendance',
       user: req.user._id,
@@ -385,8 +387,8 @@ exports.tlActivity = async (req, res, next) => {
 // GET /api/attendance/summary - Today's summary
 exports.summary = async (req, res, next) => {
   try {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const localNow = getKolkataDate();
+    const today = new Date(Date.UTC(localNow.getFullYear(), localNow.getMonth(), localNow.getDate(), 0, 0, 0, 0));
     const tomorrow = new Date(today);
     tomorrow.setDate(tomorrow.getDate() + 1);
 
