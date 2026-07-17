@@ -991,7 +991,6 @@ export function AddCandidatePage() {
             style={isTLReadOnly ? { opacity: 0.9 } : undefined}
           >
 
-          <fieldset disabled={isLockedCoreFields} className="space-y-10 border-none p-0 m-0">
           {/* ══════════ JR Selection & Auto-fill ══════════ */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 bg-blue-50 border-b border-blue-100">
@@ -1009,7 +1008,8 @@ export function AddCandidatePage() {
                     <select
                       value={form.jrNumber}
                       onChange={e => handleJrSelect(e.target.value)}
-                      className="flex-1 px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-green-400 bg-white"
+                      disabled={isLockedByFinalInterview}
+                      className="flex-1 px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-green-400 bg-white disabled:bg-slate-50 disabled:text-slate-400"
                     >
                       <option value="">-- Select JR --</option>
                       {jobs.map((j: any) => (
@@ -1031,6 +1031,8 @@ export function AddCandidatePage() {
                     )}
                   </div>
                 </div>
+                
+                <fieldset disabled={isLockedCoreFields} className="grid sm:grid-cols-2 gap-4 sm:col-span-2 border-none p-0 m-0 contents">
                 <div>
                   <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide" style={{ fontWeight: 600 }}>Client Name</label>
                   <input type="text" value={form.clientName} readOnly={isRecruiter} onChange={isRecruiter ? undefined : e => set('clientName', e.target.value)} className={`w-full px-3 py-2.5 rounded-lg border text-sm ${isRecruiter ? 'bg-slate-50 text-slate-600 border-slate-100' : 'border-slate-200 outline-none focus:border-green-400'}`} />
@@ -1063,10 +1065,12 @@ export function AddCandidatePage() {
                     <option value="Non-Active">Non-Active</option>
                   </select>
                 </div>
+              </fieldset>
               </div>
             </div>
           </div>
 
+          <fieldset disabled={isLockedCoreFields} className="space-y-10 border-none p-0 m-0">
           {/* ══════════ Candidate Details ══════════ */}
           <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="px-6 py-4 bg-green-50 border-b border-green-100">
