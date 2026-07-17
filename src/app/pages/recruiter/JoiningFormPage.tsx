@@ -115,6 +115,11 @@ interface JoiningFormData {
   // Section 6: References
   references: ReferenceEntry[];
   isApproved?: boolean;
+
+  // KYC
+  bloodGroup: string;
+  panNumber: string;
+  aadhaarNumber: string;
 }
 
 // Helper function to calculate age from DOB
@@ -177,6 +182,9 @@ export function JoiningFormPage() {
     phone: '',
     mothersPhone: '',
     fathersHusbandMobile: '',
+    bloodGroup: '',
+    panNumber: '',
+    aadhaarNumber: '',
     educationQualifications: {
       sslc: { institution: '', yearOfPassing: '', gradePercentage: '' },
       hsc: { institution: '', yearOfPassing: '', gradePercentage: '' },
@@ -236,6 +244,7 @@ export function JoiningFormPage() {
   const [expandedSections, setExpandedSections] = useState({
     personal: true,
     address: false,
+    kyc: false,
     education: false,
     employment: false,
     undertaking: false,
@@ -840,6 +849,33 @@ export function JoiningFormPage() {
               </div>
             </div>
           </div>
+        </CollapsibleSection>
+
+        {/* ── SECTION 2.5: KYC & Documents ── */}
+        <CollapsibleSection
+          title="KYC & Document Details"
+          isOpen={expandedSections.kyc}
+          onToggle={() => setExpandedSections(s => ({ ...s, kyc: !s.kyc }))}
+        >
+          <fieldset disabled={isLocked} className="space-y-4 border-none p-0 m-0">
+            <div className="grid sm:grid-cols-3 gap-4">
+              <div>
+                <label className="block text-xs text-slate-500 mb-1.5" style={{ fontWeight: 600 }}>Blood Group</label>
+                <input type="text" value={form.bloodGroup || ''} onChange={e => set('bloodGroup', e.target.value)}
+                  placeholder="e.g. O+, A+" className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-green-400 bg-white" />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1.5" style={{ fontWeight: 600 }}>PAN Number</label>
+                <input type="text" value={form.panNumber || ''} onChange={e => set('panNumber', e.target.value.toUpperCase())}
+                  placeholder="10-digit PAN" maxLength={10} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-green-400 bg-white" />
+              </div>
+              <div>
+                <label className="block text-xs text-slate-500 mb-1.5" style={{ fontWeight: 600 }}>Aadhaar Number</label>
+                <input type="tel" value={form.aadhaarNumber || ''} onChange={e => set('aadhaarNumber', e.target.value.replace(/\D/g, '').slice(0, 12))}
+                  placeholder="12-digit Aadhaar" maxLength={12} className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-green-400 bg-white" />
+              </div>
+            </div>
+          </fieldset>
         </CollapsibleSection>
 
         {/* ── SECTION 3: Education ── */}

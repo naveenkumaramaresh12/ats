@@ -219,6 +219,21 @@ function DetailPanel({ emp, onClose, isAdmin }: { emp: Employee; onClose: () => 
                     className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm bg-slate-50 text-slate-700 cursor-not-allowed"
                   />
                 </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block font-semibold">Blood Group</label>
+                  <input type="text" value={form.bloodGroup || ''} onChange={e => setForm({ ...form, bloodGroup: e.target.value })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block font-semibold">PAN Number</label>
+                  <input type="text" value={form.panNumber || ''} onChange={e => setForm({ ...form, panNumber: e.target.value.toUpperCase() })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block font-semibold">Aadhaar Number</label>
+                  <input type="text" value={form.aadhaarNumber || ''} onChange={e => setForm({ ...form, aadhaarNumber: e.target.value.replace(/\D/g, '').slice(0, 12) })}
+                    className="w-full px-3 py-2 border border-slate-200 rounded-lg text-sm outline-none focus:border-blue-400" />
+                </div>
               </div>
               <div className="flex gap-3 justify-end pt-4 border-t border-slate-100">
                 <button onClick={() => { setEditMode(false); setForm(emp); setError(''); }}

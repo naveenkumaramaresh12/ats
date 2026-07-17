@@ -747,10 +747,14 @@ export function AddCandidatePage() {
       fd.append('isPriority', String(form.isPriority));
       fd.append('isDuplicate', String(form.isDuplicate));
 
-      await api.createCandidate(fd);
+      if (candidateId) {
+        await api.updateCandidate(candidateId, fd);
+      } else {
+        await api.createCandidate(fd);
+      }
       setSubmitted(true);
     } catch (err: any) {
-      setErrors({ form: err.message || 'Failed to add candidate. Please try again.' });
+      setErrors({ form: err.message || (candidateId ? 'Failed to update candidate. Please try again.' : 'Failed to add candidate. Please try again.') });
     } finally {
       setSubmitting(false);
     }
@@ -792,25 +796,39 @@ export function AddCandidatePage() {
             </>
           ) : (
             <>
-              <h2 className="text-slate-800 mb-2" style={{ fontWeight: 700, fontSize: '1.5rem' }}>Candidate Added!</h2>
+              <h2 className="text-slate-800 mb-2" style={{ fontWeight: 700, fontSize: '1.5rem' }}>
+                {candidateId ? 'Candidate Updated!' : 'Candidate Added!'}
+              </h2>
               <p className="text-slate-500 mb-6 text-sm leading-relaxed">
-                <strong className="text-slate-700">{form.candidateName}</strong> has been added to the resume pool and is ready for outreach.
+                <strong className="text-slate-700">{form.candidateName}</strong> has been {candidateId ? 'updated successfully.' : 'added to the resume pool and is ready for outreach.'}
               </p>
               <div className="flex gap-2">
-                <button
-                  onClick={() => { setForm({ ...EMPTY_FORM, recruiterName: user?.name || '', recruiterEmail: user?.email || '', recruiterApplyEmail: user?.email || '', sourcedBy: user?.name || '', firstCallDate: new Date().toISOString().split('T')[0], firstCallTime: new Date().toTimeString().slice(0, 5) }); setSubmitted(false); setExtractMsg(''); }}
-                  className="flex-1 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50"
-                  style={{ fontWeight: 500 }}
-                >
-                  Add Another
-                </button>
-                <button
-                  onClick={() => navigate('/recruiter/resumes')}
-                  className="flex-1 py-2.5 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700"
-                  style={{ fontWeight: 600 }}
-                >
-                  View Resumes
-                </button>
+                {candidateId ? (
+                  <button
+                    onClick={() => navigate(`/recruiter/candidate/${candidateId}`)}
+                    className="w-full py-2.5 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700"
+                    style={{ fontWeight: 600 }}
+                  >
+                    Back to Profile
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => { setForm({ ...EMPTY_FORM, recruiterName: user?.name || '', recruiterEmail: user?.email || '', recruiterApplyEmail: user?.email || '', sourcedBy: user?.name || '', firstCallDate: new Date().toISOString().split('T')[0], firstCallTime: new Date().toTimeString().slice(0, 5) }); setSubmitted(false); setExtractMsg(''); }}
+                      className="flex-1 py-2.5 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50"
+                      style={{ fontWeight: 500 }}
+                    >
+                      Add Another
+                    </button>
+                    <button
+                      onClick={() => navigate('/recruiter/resumes')}
+                      className="flex-1 py-2.5 bg-green-600 text-white text-sm rounded-xl hover:bg-green-700"
+                      style={{ fontWeight: 600 }}
+                    >
+                      View Resumes
+                    </button>
+                  </>
+                )}
               </div>
             </>
           )}
