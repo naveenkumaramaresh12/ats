@@ -1031,7 +1031,9 @@ export function AddCandidatePage() {
                     >
                       <option value="">-- Select JR --</option>
                       {jobs.map((j: any) => (
-                        <option key={j._id} value={j.jrNumber}>{j.jrNumber} – {j.jobTitle} ({j.client || j.companyName})</option>
+                        <option key={j._id} value={j.jrNumber}>
+                          {j.jrNumber} – {j.jobTitle} ({j.client || j.companyName}) | Owner: {j.recruiterName || 'N/A'} | Loc: {j.location || 'N/A'} | Posted: {j.createdAt ? new Date(j.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'N/A'}
+                        </option>
                       ))}
                     </select>
                     {form.jrNumber && isAdmin && (

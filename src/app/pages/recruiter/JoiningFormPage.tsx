@@ -41,6 +41,8 @@ interface HighestQualification {
   majorSubject: string;
   marksheetFile: File | null;
   degreeCertificateFile: File | null;
+  marksheetPath?: string;
+  degreeCertificatePath?: string;
 }
 
 interface EmploymentEntry {
@@ -60,6 +62,7 @@ interface EmploymentEntry {
   reportingManagerPosition: string;
   reportingManagerContact: string;
   relievingLetterFile: File | null;
+  relievingLetterPath?: string;
 }
 
 interface ReferenceEntry {
@@ -75,6 +78,7 @@ interface JoiningFormData {
 
   // Section 1: Personal Details
   photo: File | null;
+  photoPath?: string;
   fullName: string;
   gender: 'Male' | 'Female' | 'Other' | '';
   dateOfBirth: string;
@@ -488,15 +492,15 @@ export function JoiningFormPage() {
     // Required fields
     if (!form.fullName) newErrors.fullName = 'Name required';
     if (!form.dateOfBirth) newErrors.dateOfBirth = 'DOB required';
-    if (!form.photo) newErrors.photo = 'Photo is mandatory';
+    if (!form.photo && !form.photoPath) newErrors.photo = 'Photo is mandatory';
     if (!form.phone || form.phone.length !== 10) newErrors.phone = 'Valid 10-digit phone required';
     if (!form.permanentAddress) newErrors.permanentAddress = 'Permanent address required';
     if (!form.positionApplied) newErrors.positionApplied = 'Position required';
     if (!form.joiningDate) newErrors.joiningDate = 'Joining date required';
 
     // Education documents
-    if (!form.highestQualification.marksheetFile) newErrors.marksheet = 'Marksheet required';
-    if (!form.highestQualification.degreeCertificateFile) newErrors.degreeCertificate = 'Degree certificate required';
+    if (!form.highestQualification.marksheetFile && !form.highestQualification.marksheetPath) newErrors.marksheet = 'Marksheet required';
+    if (!form.highestQualification.degreeCertificateFile && !form.highestQualification.degreeCertificatePath) newErrors.degreeCertificate = 'Degree certificate required';
 
     // Employment history (only required for non-freshers)
     if (!form.isFresher) {
@@ -506,7 +510,7 @@ export function JoiningFormPage() {
         form.employmentHistory.forEach((emp, idx) => {
           if (!emp.companyName) newErrors[`emp${idx}Company`] = 'Company name required';
           if (!emp.fromDate) newErrors[`emp${idx}FromDate`] = 'From date required';
-          if (!emp.relievingLetterFile) newErrors[`emp${idx}Relieving`] = 'Relieving letter required';
+          if (!emp.relievingLetterFile && !emp.relievingLetterPath) newErrors[`emp${idx}Relieving`] = 'Relieving letter required';
         });
       }
     }
