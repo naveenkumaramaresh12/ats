@@ -118,6 +118,8 @@ exports.create = async (req, res, next) => {
       data.jdOriginalName = req.file.originalname;
     }
     data.createdBy = req.user._id;
+    if (!data.recruiterName) data.recruiterName = req.user.name;
+    if (!data.recruiterEmail) data.recruiterEmail = req.user.email;
 
     // Auto-generate JR Number if not provided: JRWH0001, JRWH0002, ...
     if (!data.jrNumber) {
@@ -269,6 +271,8 @@ exports.bulkCreate = async (req, res, next) => {
       try {
         jobData.jrNumber  = `JRWH${String(baseCount + created.length + 1).padStart(4, '0')}`;
         jobData.createdBy = req.user._id;
+        if (!jobData.recruiterName) jobData.recruiterName = req.user.name;
+        if (!jobData.recruiterEmail) jobData.recruiterEmail = req.user.email;
         jobData.status    = jobData.status   || 'Open';
         jobData.priority  = jobData.priority || 'Medium';
         const doc = await Job.create(jobData);
