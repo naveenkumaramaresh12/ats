@@ -144,6 +144,52 @@ mongoose.connect(MONGODB_URI)
       console.error('Error seeding recruiter portals:', seedErr);
     }
 
+    // One-time division migration logic
+    try {
+      const Job = require('./models/Job');
+      const Candidate = require('./models/Candidate');
+      
+      // Migrate Jobs
+      const jobsToMigrate = await Job.find({ division: { $exists: false } });
+      if (jobsToMigrate.length > 0) {
+        console.log(`Migrating ${jobsToMigrate.length} jobs to include division...`);
+        for (const job of jobsToMigrate) {
+          const dept = (job.portfolioDepartment || '').toUpperCase();
+          if (dept === 'IT') {
+            job.division = 'IT';
+          } else if (dept === 'NON-IT' || dept === 'LATERAL') {
+            job.division = 'Lateral';
+          } else {
+            job.division = 'BPO';
+          }
+          await job.save();
+        }
+        console.log('Jobs division migration completed.');
+      }
+      
+      // Migrate Candidates
+      const candidatesToMigrate = await Candidate.find({ division: { $exists: false } });
+      if (candidatesToMigrate.length > 0) {
+        console.log(`Migrating ${candidatesToMigrate.length} candidates to include division...`);
+        for (const cand of candidatesToMigrate) {
+          if (cand.jrNumber) {
+            const job = await Job.findOne({ jrNumber: cand.jrNumber });
+            if (job) {
+              cand.division = job.division || 'BPO';
+            } else {
+              cand.division = 'BPO';
+            }
+          } else {
+            cand.division = 'BPO';
+          }
+          await cand.save();
+        }
+        console.log('Candidates division migration completed.');
+      }
+    } catch (migErr) {
+      console.error('Error during startup division migration:', migErr);
+    }
+
     // Start candidate archiving scheduler (prunes records > 1 year)
     try {
       const { startArchiveScheduler } = require('./utils/archiveScheduler');

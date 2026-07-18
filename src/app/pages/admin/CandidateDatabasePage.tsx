@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router';
 import {
   Search, Filter, ChevronLeft, ChevronRight, ExternalLink,
   Users, UserCheck, UserX, Flag, RefreshCw, X, Phone, Download,
+  Mail, MessageSquare,
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -77,6 +78,41 @@ export function CandidateDatabasePage() {
   const [stats, setStats] = useState({ total: 0, selected: 0, joined: 0, reassignPending: 0 });
   const [exporting, setExporting] = useState(false);
 
+  // Selection and Bulk Actions state
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailSubject, setEmailSubject] = useState('');
+  const [emailBody, setEmailBody] = useState('');
+  const [emailSending, setEmailSending] = useState(false);
+
+  // WhatsApp click-to-chat state
+  const [waCandidate, setWaCandidate] = useState<any | null>(null);
+  const [waTemplate, setWaTemplate] = useState('invite');
+  const [waCustomText, setWaCustomText] = useState('');
+
+  const getWaMessage = (temp: string, cand: any) => {
+    if (!cand) return '';
+    const name = cand.name || 'Candidate';
+    const role = cand.positionApplied || 'the open position';
+    const company = cand.clientName || 'our client';
+    if (temp === 'invite') {
+      return `Hello ${name}, you have been shortlisted for the position of ${role} at ${company}. Please confirm your availability for an interview. - White Horse Manpower`;
+    }
+    if (temp === 'docs') {
+      return `Hello ${name}, we require your onboarding documents (Aadhaar, PAN, educational marksheets) for the position at ${company}. Please share them soon. - White Horse Manpower`;
+    }
+    if (temp === 'noResponse') {
+      return `Hello ${name}, I tried calling you regarding your job application at White Horse Manpower. Please call me back when you are free.`;
+    }
+    return '';
+  };
+
+  useEffect(() => {
+    if (waCandidate) {
+      setWaCustomText(getWaMessage(waTemplate, waCandidate));
+    }
+  }, [waCandidate, waTemplate]);
+
   const handleExport = async () => {
     if (exporting) return;
     setExporting(true);
@@ -94,6 +130,23 @@ export function CandidateDatabasePage() {
       alert(err.message || 'Failed to export candidates. Please try again.');
     } finally {
       setExporting(false);
+    }
+  };
+
+  const handleSendBulkEmail = async () => {
+    if (!emailSubject || !emailBody) return;
+    try {
+      setEmailSending(true);
+      await api.bulkEmailCandidates(selectedIds, emailSubject, emailBody);
+      alert('Bulk emails sent successfully!');
+      setEmailModalOpen(false);
+      setEmailSubject('');
+      setEmailBody('');
+      setSelectedIds([]);
+    } catch (err: any) {
+      alert(err.message || 'Failed to send bulk emails');
+    } finally {
+      setEmailSending(false);
     }
   };
 
@@ -289,6 +342,20 @@ export function CandidateDatabasePage() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-100">
+                    <th className="px-4 py-3 text-left w-10" onClick={e => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={candidates.length > 0 && selectedIds.length === candidates.length}
+                        onChange={e => {
+                          if (e.target.checked) {
+                            setSelectedIds(candidates.map(c => c._id));
+                          } else {
+                            setSelectedIds([]);
+                          }
+                        }}
+                        className="w-4 h-4 rounded border-slate-200 text-green-600 focus:ring-green-500"
+                      />
+                    </th>
                     {[
                       'Job Title', 'Date of application', 'Name', 'Email ID', 'Phone Number',
                       'Current Location', 'Preferred Locations', 'Total Experience', 'Curr. Company name',
@@ -308,6 +375,20 @@ export function CandidateDatabasePage() {
                 <tbody className="divide-y divide-slate-50">
                   {candidates.map(c => (
                     <tr key={c._id} className="hover:bg-slate-50 cursor-pointer" onClick={() => navigate(`/recruiter/candidate/${c._id}`)}>
+                      <td className="px-4 py-3 w-10" onClick={e => e.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(c._id)}
+                          onChange={e => {
+                            if (e.target.checked) {
+                              setSelectedIds(prev => [...prev, c._id]);
+                            } else {
+                              setSelectedIds(prev => prev.filter(id => id !== c._id));
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-slate-200 text-green-600 focus:ring-green-500"
+                        />
+                      </td>
                       {/* 1. Job Title */}
                       <td className="px-4 py-3 text-slate-600 text-xs whitespace-nowrap">{c.positionApplied || '—'}</td>
                       
@@ -436,10 +517,20 @@ export function CandidateDatabasePage() {
                       <td className="px-4 py-3 text-slate-600 text-xs max-w-[200px] truncate" title={c.permanentAddress || ''}>{c.permanentAddress || '—'}</td>
 
                       <td className="px-4 py-3" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => navigate(`/recruiter/candidate/${c._id}`)}
-                          className="text-slate-300 hover:text-green-600 p-1 rounded-lg hover:bg-green-50 transition-colors">
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center gap-1.5">
+                          <button onClick={() => navigate(`/recruiter/candidate/${c._id}`)}
+                            className="text-slate-300 hover:text-green-600 p-1 rounded-lg hover:bg-green-50 transition-colors"
+                            title="View Details">
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </button>
+                          {c.phone && (
+                            <button onClick={() => setWaCandidate(c)}
+                              className="text-slate-300 hover:text-emerald-600 p-1 rounded-lg hover:bg-emerald-50 transition-colors"
+                              title="WhatsApp Candidate">
+                              <MessageSquare className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -467,6 +558,147 @@ export function CandidateDatabasePage() {
             </div>
           )}
         </div>
+
+      {/* ── Floating Bulk Actions Panel ── */}
+      {selectedIds.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-6 py-4 rounded-2xl shadow-2xl flex items-center gap-6 z-40 border border-slate-800 animate-in fade-in slide-in-from-bottom-4 duration-300">
+          <div className="text-sm font-medium">
+            <span className="text-green-400 font-bold mr-1">{selectedIds.length}</span> candidates selected
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                setEmailSubject('');
+                setEmailBody('');
+                setEmailModalOpen(true);
+              }}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold px-4 py-2 rounded-xl transition-colors"
+            >
+              <Mail className="w-3.5 h-3.5" /> Send Bulk Email
+            </button>
+            <button
+              onClick={() => setSelectedIds([])}
+              className="text-slate-400 hover:text-white text-xs font-semibold px-3 py-2 transition-colors"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Bulk Email Modal ── */}
+      {emailModalOpen && (
+        <div className="fixed inset-0 bg-slate-950/45 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <Mail className="w-5 h-5 text-green-600" />
+                <h3 className="text-slate-800" style={{ fontWeight: 700 }}>Send Bulk Email</h3>
+              </div>
+              <button onClick={() => setEmailModalOpen(false)} className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100 rounded-lg">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4 overflow-y-auto flex-1">
+              <p className="text-slate-500 text-xs">Sending to {selectedIds.length} selected candidate(s). You can use `{'{name}'}` to personalize the email body.</p>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Email Subject *</label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={e => setEmailSubject(e.target.value)}
+                  placeholder="e.g. Job Opportunity at White Horse Manpower"
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 bg-slate-50"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Email Body *</label>
+                <textarea
+                  rows={8}
+                  value={emailBody}
+                  onChange={e => setEmailBody(e.target.value)}
+                  placeholder="Dear {name},&#10;&#10;We have an exciting opportunity for you..."
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 bg-slate-50 resize-none"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-2 justify-end flex-shrink-0">
+              <button
+                disabled={emailSending}
+                onClick={() => setEmailModalOpen(false)}
+                className="px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={emailSending || !emailSubject.trim() || !emailBody.trim()}
+                onClick={handleSendBulkEmail}
+                className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
+              >
+                {emailSending ? 'Sending...' : 'Send Emails'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── WhatsApp Modal ── */}
+      {waCandidate && (
+        <div className="fixed inset-0 bg-slate-950/45 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between flex-shrink-0">
+              <div className="flex items-center gap-2">
+                <MessageSquare className="w-5 h-5 text-emerald-600" />
+                <h3 className="text-slate-800" style={{ fontWeight: 700 }}>WhatsApp Outreach</h3>
+              </div>
+              <button onClick={() => setWaCandidate(null)} className="text-slate-400 hover:text-slate-600 p-1.5 hover:bg-slate-100 rounded-lg">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Select Outreach Template</label>
+                <select
+                  value={waTemplate}
+                  onChange={e => setWaTemplate(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm bg-slate-50 outline-none"
+                >
+                  <option value="invite">Interview Invitation</option>
+                  <option value="docs">Onboarding Document Request</option>
+                  <option value="noResponse">Call Follow-up / No Response</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">Custom Message Text</label>
+                <textarea
+                  rows={5}
+                  value={waCustomText}
+                  onChange={e => setWaCustomText(e.target.value)}
+                  className="w-full px-3 py-2 border border-slate-200 rounded-xl text-sm outline-none focus:border-emerald-400 bg-slate-50 resize-none"
+                />
+              </div>
+            </div>
+            <div className="px-6 py-4 border-t border-slate-100 flex gap-2 justify-end flex-shrink-0">
+              <button
+                onClick={() => setWaCandidate(null)}
+                className="px-4 py-2 border border-slate-200 text-slate-600 text-sm rounded-xl hover:bg-slate-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  const url = `https://wa.me/91${waCandidate.phone}?text=${encodeURIComponent(waCustomText)}`;
+                  window.open(url, '_blank');
+                  setWaCandidate(null);
+                }}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl transition-colors"
+              >
+                Open WhatsApp
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

@@ -168,6 +168,7 @@ const candidateSchema = new mongoose.Schema({
   // JR auto-fill fields
   jrNumber: { type: String },
   clientName: { type: String },
+  division: { type: String, enum: ['IT', 'BPO', 'Lateral'], default: 'BPO' },
   sourcedBy: { type: String },
   sourceStatus: { type: String, enum: ['Active', 'Non-Active'], default: 'Active' },
 

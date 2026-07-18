@@ -154,13 +154,14 @@ export function JoiningFormPage() {
   const photoInputRef = useRef<HTMLInputElement>(null);
   const resumeInputRef = useRef<HTMLInputElement>(null);
 
-  // Access control: Only admins can view/edit an existing submitted joining form.
-  // Recruiters and TLs can only access the page to submit a new joining form.
+  // Access control: Admins can view/edit any submitted joining form.
+  // Recruiters and TLs can view their own submitted joining form, but not others.
   useEffect(() => {
     if (user) {
       const isAdmin = user.role === 'admin';
+      const isSelf = paramEmployeeId && (paramEmployeeId === user.employeeId);
       
-      if (paramEmployeeId && !isAdmin) {
+      if (paramEmployeeId && !isAdmin && !isSelf) {
         navigate('/recruiter', { replace: true });
       } else if (!isAdmin && !['recruiter', 'tl'].includes(user.role)) {
         navigate('/recruiter', { replace: true });
@@ -295,15 +296,21 @@ export function JoiningFormPage() {
     try {
       const data = await api.getJoiningFormAutoFillData?.();
       if (data) {
-        setForm(prev => ({
-          ...prev,
-          fullName: data.name || '',
-          email: data.email || '',
-          phone: data.phone || '',
-          permanentAddress: data.address || '',
-          positionApplied: data.position || '',
-          salaryOffered: data.salary || '',
-        }));
+        if (data.employeeId || data._id) {
+          // If it is an existing submitted form, load the whole document
+          setForm(data);
+        } else {
+          // Fallback data for new submission
+          setForm(prev => ({
+            ...prev,
+            fullName: data.fullName || data.name || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            permanentAddress: data.permanentAddress || data.address || '',
+            positionApplied: data.positionApplied || data.position || '',
+            salaryOffered: data.salaryOffered || data.salary || '',
+          }));
+        }
       }
     } catch (err) {
       console.log('Auto-populate not available:', err);

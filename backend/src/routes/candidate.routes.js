@@ -7,6 +7,7 @@ router.use(auth);
 
 router.get('/export', authorize('admin'), ctrl.exportCandidates);
 router.post('/import', authorize('recruiter', 'tl', 'admin'), uploadImport.single('file'), ctrl.importCandidates);
+router.post('/bulk-email', authorize('recruiter', 'tl', 'admin'), ctrl.bulkEmail);
 router.get('/', ctrl.list);
 router.get('/check-duplicate', authorize('recruiter', 'tl', 'admin'), ctrl.checkDuplicate); // Must be before /:id
 router.get('/flagged', authorize('tl', 'admin'), ctrl.getFlagged);  // Must be before /:id

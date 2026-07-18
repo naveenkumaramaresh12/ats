@@ -38,6 +38,7 @@ export function JobCreatePage() {
     client: '',
     jobTitle: '',
     department: '',
+    division: 'BPO',
     jobType: '',
     experience: '',
     location: '',
@@ -340,6 +341,18 @@ export function JobCreatePage() {
               onChange={val => setForm(f => ({ ...f, department: val }))}
               placeholder="Select department"
             />
+          </div>
+          <div>
+            <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide" style={{ fontWeight: 600 }}>Division *</label>
+            <select
+              value={form.division}
+              onChange={e => setForm(f => ({ ...f, division: e.target.value }))}
+              className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm outline-none focus:border-green-400 bg-white"
+            >
+              <option value="BPO">BPO</option>
+              <option value="IT">IT</option>
+              <option value="Lateral">Lateral</option>
+            </select>
           </div>
           <div>
             <label className="block text-xs text-slate-500 mb-1.5 uppercase tracking-wide" style={{ fontWeight: 600 }}>Job Type</label>

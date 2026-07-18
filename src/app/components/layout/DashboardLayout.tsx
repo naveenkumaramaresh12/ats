@@ -271,8 +271,9 @@ export function DashboardLayout() {
     return <Navigate to="/walk-in" replace />;
   }
 
-  // WFH users must complete OTP before accessing dashboard
-  if (pendingOTP) {
+  // WFH users must complete OTP before accessing dashboard (disabled on localhost for easier testing)
+  const isLocalhost = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  if (pendingOTP && !isLocalhost) {
     return <Navigate to="/otp" replace />;
   }
 

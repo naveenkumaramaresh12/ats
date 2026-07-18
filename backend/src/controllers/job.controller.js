@@ -22,10 +22,15 @@ exports.list = async (req, res, next) => {
     }
 
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    const [jobs, total] = await Promise.all([
+    const [jobs, total, totalPositionsResult] = await Promise.all([
       Job.find(query).sort('-createdAt').skip(skip).limit(parseInt(limit)),
       Job.countDocuments(query),
+      Job.aggregate([
+        { $match: query },
+        { $group: { _id: null, sum: { $sum: '$positions' } } }
+      ])
     ]);
+    const totalPositions = totalPositionsResult[0]?.sum || 0;
 
     // Attach candidate counts per job title & jrNumber (batch lookup)
     const Candidate = require('../models/Candidate');
@@ -59,6 +64,7 @@ exports.list = async (req, res, next) => {
       jobs: jobsWithCounts,
       pagination: {
         total,
+        totalPositions,
         pages: Math.ceil(total / parseInt(limit)),
         page: parseInt(page),
         limit: parseInt(limit),
@@ -234,21 +240,31 @@ exports.bulkCreate = async (req, res, next) => {
         return '';
       };
 
-      jobs = rows.map(row => ({
-        companyName: colVal(row, ['companyname', 'company', 'client']),
-        jobTitle:    colVal(row, ['jobtitle', 'title', 'position', 'role', 'designation']),
-        department:  colVal(row, ['department', 'dept']),
-        jobType:     colVal(row, ['jobtype', 'type', 'employmenttype']),
-        experience:  colVal(row, ['experience', 'exp', 'experiencerequired']),
-        location:    colVal(row, ['location', 'city', 'place']),
-        positions:   parseInt(colVal(row, ['positions', 'openings', 'vacancies', 'count'])) || 1,
-        priority:    colVal(row, ['priority']),
-        status:      colVal(row, ['status']),
-        hrName:      colVal(row, ['hrname', 'hr', 'contactname']),
-        hrEmail:     colVal(row, ['hremail', 'hremailid', 'contactemail']),
-        skills:      colVal(row, ['skills', 'keyskills']).split(',').map(s => s.trim()).filter(Boolean),
-        description: colVal(row, ['description', 'desc', 'jobdescription', 'jd']),
-      }));
+      jobs = rows.map(row => {
+        const divisionRaw = colVal(row, ['division', 'div', 'segment']).toUpperCase();
+        let division = 'BPO';
+        if (divisionRaw.includes('IT')) {
+          division = 'IT';
+        } else if (divisionRaw.includes('LATERAL')) {
+          division = 'Lateral';
+        }
+        return {
+          companyName: colVal(row, ['companyname', 'company', 'client']),
+          jobTitle:    colVal(row, ['jobtitle', 'title', 'position', 'role', 'designation']),
+          department:  colVal(row, ['department', 'dept']),
+          division:    division,
+          jobType:     colVal(row, ['jobtype', 'type', 'employmenttype']),
+          experience:  colVal(row, ['experience', 'exp', 'experiencerequired']),
+          location:    colVal(row, ['location', 'city', 'place']),
+          positions:   parseInt(colVal(row, ['positions', 'openings', 'vacancies', 'count'])) || 1,
+          priority:    colVal(row, ['priority']),
+          status:      colVal(row, ['status']),
+          hrName:      colVal(row, ['hrname', 'hr', 'contactname']),
+          hrEmail:     colVal(row, ['hremail', 'hremailid', 'contactemail']),
+          skills:      colVal(row, ['skills', 'keyskills']).split(',').map(s => s.trim()).filter(Boolean),
+          description: colVal(row, ['description', 'desc', 'jobdescription', 'jd']),
+        };
+      });
     }
 
     if (!Array.isArray(jobs) || jobs.length === 0) {

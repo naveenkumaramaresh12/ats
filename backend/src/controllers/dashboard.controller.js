@@ -456,3 +456,190 @@ exports.allTeamsDashboard = async (req, res, next) => {
     next(err);
   }
 };
+
+// GET /api/dashboard/division
+exports.divisionDashboard = async (req, res, next) => {
+  try {
+    const { division = 'BPO' } = req.query;
+    const Job = require('../models/Job');
+    const Candidate = require('../models/Candidate');
+
+    // 1. Open Positions & total JRs
+    const openJobs = await Job.find({ division, status: 'Open' });
+    const openPositions = openJobs.reduce((sum, j) => sum + (j.positions || 0), 0);
+    const totalJRs = openJobs.length;
+
+    // 2. Candidates in each stage
+    const screeningCount = await Candidate.countDocuments({ division, currentStage: 'Screening', status: { $ne: 'Rejected' } });
+    const interviewCount = await Candidate.countDocuments({ division, currentStage: 'Interview', status: { $ne: 'Rejected' } });
+    const offerCount = await Candidate.countDocuments({ division, currentStage: 'Offer', status: { $ne: 'Rejected' } });
+    const joinedCount = await Candidate.countDocuments({ division, status: 'Joined' });
+
+    // 3. Joined Candidates with Date of Joining
+    const joinedCandidates = await Candidate.find({ division, status: 'Joined' })
+      .select('name positionApplied clientName dateOfJoining assignedRecruiterName')
+      .sort('-dateOfJoining');
+
+    res.json({
+      division,
+      openPositions,
+      totalJRs,
+      pipeline: {
+        screening: screeningCount,
+        interview: interviewCount,
+        offer: offerCount,
+        joined: joinedCount
+      },
+      joinedCandidates
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET /api/dashboard/reports/advanced
+exports.advancedReports = async (req, res, next) => {
+  try {
+    const { dateRange = 'month', startDate, endDate } = req.query;
+    const { start, end } = getDateRange(dateRange, startDate, endDate);
+    
+    const Job = require('../models/Job');
+    const Candidate = require('../models/Candidate');
+
+    // 1. Recruiter performance
+    const recruiterReport = await Candidate.aggregate([
+      { $match: { createdAt: { $gte: start, $lt: end } } },
+      {
+        $group: {
+          _id: '$assignedRecruiterName',
+          shared: { $sum: 1 },
+          interviews: {
+            $sum: {
+              $cond: [{ $in: ['$status', ['Interview Scheduled', 'Interview Completed', 'Shortlisted', 'HR Round Scheduled']] }, 1, 0]
+            }
+          },
+          selected: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'Selected'] }, 1, 0]
+            }
+          },
+          joined: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'Joined'] }, 1, 0]
+            }
+          }
+        }
+      },
+      { $sort: { joined: -1 } }
+    ]);
+
+    // 2. Customer performance
+    const customerReport = await Candidate.aggregate([
+      { $match: { createdAt: { $gte: start, $lt: end }, clientName: { $ne: null, $ne: '' } } },
+      {
+        $group: {
+          _id: '$clientName',
+          shared: { $sum: 1 },
+          interviews: {
+            $sum: {
+              $cond: [{ $in: ['$status', ['Interview Scheduled', 'Interview Completed', 'Shortlisted', 'HR Round Scheduled']] }, 1, 0]
+            }
+          },
+          selected: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'Selected'] }, 1, 0]
+            }
+          },
+          joined: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'Joined'] }, 1, 0]
+            }
+          }
+        }
+      },
+      { $sort: { joined: -1 } }
+    ]);
+
+    // 3. Division performance
+    const divisionReport = await Candidate.aggregate([
+      { $match: { createdAt: { $gte: start, $lt: end } } },
+      {
+        $group: {
+          _id: '$division',
+          shared: { $sum: 1 },
+          interviews: {
+            $sum: {
+              $cond: [{ $in: ['$status', ['Interview Scheduled', 'Interview Completed', 'Shortlisted', 'HR Round Scheduled']] }, 1, 0]
+            }
+          },
+          selected: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'Selected'] }, 1, 0]
+            }
+          },
+          joined: {
+            $sum: {
+              $cond: [{ $eq: ['$status', 'Joined'] }, 1, 0]
+            }
+          }
+        }
+      },
+      { $sort: { joined: -1 } }
+    ]);
+
+    // 4. Aging Report
+    const activePipelineCandidates = await Candidate.find({
+      status: { $nin: ['Joined', 'Rejected', 'Exited'] }
+    }).select('name currentStage status updatedAt createdAt assignedRecruiterName');
+
+    const agingCandidates = activePipelineCandidates.map(cand => {
+      const lastChangeDate = cand.updatedAt || cand.createdAt;
+      const daysPending = Math.ceil((new Date() - new Date(lastChangeDate)) / (1000 * 60 * 60 * 24));
+      return {
+        _id: cand._id,
+        name: cand.name,
+        stage: cand.currentStage,
+        status: cand.status,
+        daysPending,
+        recruiter: cand.assignedRecruiterName || 'Unassigned'
+      };
+    }).sort((a, b) => b.daysPending - a.daysPending);
+
+    const avgStageAging = {};
+    ['Applied', 'Screening', 'Interview', 'Offer', 'Joining'].forEach(stg => {
+      const stgCands = agingCandidates.filter(c => c.stage === stg);
+      const avg = stgCands.length > 0
+        ? Math.round(stgCands.reduce((s, c) => s + c.daysPending, 0) / stgCands.length)
+        : 0;
+      avgStageAging[stg] = avg;
+    });
+
+    // 5. Conversion Ratio Report
+    const conversionReport = recruiterReport.map(r => {
+      const sharedPerSelect = r.selected > 0 ? (r.shared / r.selected).toFixed(1) : '—';
+      const sharedPerJoin = r.joined > 0 ? (r.shared / r.joined).toFixed(1) : '—';
+      return {
+        recruiter: r._id || 'Unknown',
+        shared: r.shared,
+        interviews: r.interviews,
+        selected: r.selected,
+        joined: r.joined,
+        sharedPerSelect,
+        sharedPerJoin
+      };
+    });
+
+    res.json({
+      recruiterReport,
+      customerReport,
+      divisionReport,
+      aging: {
+        avgStageAging,
+        candidates: agingCandidates.slice(0, 100) // limit to top 100 for performance
+      },
+      conversionReport
+    });
+  } catch (err) {
+    next(err);
+  }
+};

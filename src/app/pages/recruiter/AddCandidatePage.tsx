@@ -315,9 +315,16 @@ export function AddCandidatePage() {
 
   // JR list for auto-fill
   const [jobs, setJobs] = useState<any[]>([]);
+  const [jrSearch, setJrSearch] = useState('');
   useEffect(() => {
     api.getJobs({ limit: '1000' }).then((d: any) => setJobs(d.jobs || [])).catch(() => { });
   }, []);
+
+  const filteredJobs = jobs.filter(j => 
+    (j.jrNumber || '').toLowerCase().includes(jrSearch.toLowerCase()) ||
+    (j.jobTitle || '').toLowerCase().includes(jrSearch.toLowerCase()) ||
+    (j.client || j.companyName || '').toLowerCase().includes(jrSearch.toLowerCase())
+  );
 
   // ── Load existing candidate (edit / TL view mode) ────────────
   useEffect(() => {
@@ -1022,6 +1029,16 @@ export function AddCandidatePage() {
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2">
                   <label className="block text-sm text-slate-700 mb-1.5" style={{ fontWeight: 500 }}>Select JR Number</label>
+                  <div className="mb-2">
+                    <input
+                      type="text"
+                      placeholder="Search JRs by JR #, Job Title, Client/Company..."
+                      value={jrSearch}
+                      onChange={e => setJrSearch(e.target.value)}
+                      disabled={isLockedByFinalInterview}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm outline-none focus:border-green-400 bg-slate-50 disabled:opacity-50"
+                    />
+                  </div>
                   <div className="flex gap-2 items-end">
                     <select
                       value={form.jrNumber}
@@ -1029,8 +1046,8 @@ export function AddCandidatePage() {
                       disabled={isLockedByFinalInterview}
                       className="flex-1 px-3 py-2.5 rounded-lg border border-slate-200 text-sm outline-none focus:border-green-400 bg-white disabled:bg-slate-50 disabled:text-slate-400"
                     >
-                      <option value="">-- Select JR --</option>
-                      {jobs.map((j: any) => (
+                      <option value="">-- Select JR ({filteredJobs.length} found) --</option>
+                      {filteredJobs.map((j: any) => (
                         <option key={j._id} value={j.jrNumber}>
                           {j.jrNumber} – {j.jobTitle} ({j.client || j.companyName}) | Owner: {j.recruiterName || 'N/A'} | Loc: {j.location || 'N/A'} | Posted: {j.createdAt ? new Date(j.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : 'N/A'}
                         </option>

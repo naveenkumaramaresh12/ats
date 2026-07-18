@@ -570,6 +570,22 @@ class ApiService {
     return this.request<any>(`/dashboard/manager/reports${query ? `?${query}` : ''}`);
   }
 
+  async bulkEmailCandidates(candidateIds: string[], subject: string, body: string) {
+    return this.request<any>('/candidates/bulk-email', {
+      method: 'POST',
+      body: JSON.stringify({ candidateIds, subject, body })
+    });
+  }
+
+  async getDivisionDashboard(division: string) {
+    return this.request<any>(`/dashboard/division?division=${encodeURIComponent(division)}`);
+  }
+
+  async getAdvancedReports(params: Record<string, string> = {}) {
+    const query = new URLSearchParams(params).toString();
+    return this.request<any>(`/dashboard/reports/advanced${query ? `?${query}` : ''}`);
+  }
+
   async searchGlobal(params: Record<string, string> = {}) {
     const query = new URLSearchParams(params).toString();
     return this.request<any>(`/search/global${query ? `?${query}` : ''}`);

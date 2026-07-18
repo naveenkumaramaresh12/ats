@@ -65,7 +65,7 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Bulk Job Post',    href: '/recruiter/jobs/bulk',     icon: LayoutGrid,       roles: ['admin'], category: 'Admin' },
   { label: 'Companies',        href: '/admin/companies',         icon: Building2,        roles: ['admin'], category: 'Admin' },
   { label: 'Tasks',            href: '/admin/tasks',             icon: CheckSquare,      roles: ['admin', 'tl', 'recruiter'], category: 'Admin' },
-  { label: 'Recruiter Joining Form', href: '/recruiter/joining', icon: FileCheck,        roles: ['admin', 'recruiter', 'tl'], category: 'Recruiter' },
+  { label: 'My Joining Form', href: '/recruiter/joining', icon: FileCheck,        roles: ['admin', 'recruiter', 'tl'], category: 'Recruiter' },
   { label: 'Recruiter Records',  href: '/admin/joining',           icon: ClipboardCheck,   roles: ['admin', 'recruiter', 'tl'], category: 'Admin' },
   { label: 'Email Center',     href: '/email',                   icon: Mail,            roles: ['admin'], category: 'Admin' },
   { label: 'TL Login Activity',href: '/admin/tl-activity',       icon: MonitorCheck,     roles: ['admin'], category: 'Admin' },
@@ -143,9 +143,6 @@ export function Sidebar({ onClose }: SidebarProps) {
   const seenHrefs = new Set<string>();
   const filteredNav = rawFilteredNav.filter(item => {
     if (seenHrefs.has(item.href)) {
-      return false;
-    }
-    if (item.href === '/recruiter/joining' && joiningApproved && user.role !== 'admin') {
       return false;
     }
     seenHrefs.add(item.href);

@@ -5,7 +5,8 @@ import {
   ArrowRight, AlertCircle, CheckCircle2, ScanLine, UserPlus,
   ListChecks, CalendarCheck, ChevronDown, Briefcase, UserCheck,
   X, PhoneMissed, PhoneOff, PhoneCall, ClipboardList,
-  UserX, Building2, BadgeCheck, Clipboard, Loader2, Mail, CheckSquare
+  UserX, Building2, BadgeCheck, Clipboard, Loader2, Mail, CheckSquare,
+  Info
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
@@ -76,6 +77,24 @@ export function RecruiterDashboard() {
   const [customTo, setCustomTo] = useState('');
   const [loading, setLoading] = useState(true);
   const [dashData, setDashData] = useState<any>(null);
+  
+  const [onboardingStatus, setOnboardingStatus] = useState<{ submitted: boolean; approved: boolean } | null>(null);
+
+  useEffect(() => {
+    if (api.getJoiningFormAutoFillData) {
+      api.getJoiningFormAutoFillData()
+        .then((data: any) => {
+          if (data && (data.employeeId || data._id)) {
+            setOnboardingStatus({ submitted: true, approved: !!data.isApproved });
+          } else {
+            setOnboardingStatus({ submitted: false, approved: false });
+          }
+        })
+        .catch(() => {
+          setOnboardingStatus({ submitted: false, approved: false });
+        });
+    }
+  }, []);
 
   const DATE_TABS: DateRange[] = ['Day', 'Week', 'Quarter', 'Year', 'All', 'Custom'];
 
@@ -154,6 +173,59 @@ export function RecruiterDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Onboarding status banner */}
+      {onboardingStatus && (
+        <div className="transition-all duration-200">
+          {!onboardingStatus.submitted ? (
+            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start justify-between gap-3 shadow-sm">
+              <div className="flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-amber-800">Onboarding Incomplete</h4>
+                  <p className="text-xs text-amber-700 mt-0.5">
+                    Please submit your comprehensive joining details and upload your records to complete your profile.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/recruiter/joining"
+                className="text-xs font-bold text-amber-800 hover:text-amber-900 bg-amber-100 hover:bg-amber-200 px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
+              >
+                Complete Onboarding &rarr;
+              </Link>
+            </div>
+          ) : !onboardingStatus.approved ? (
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
+              <Info className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" />
+              <div>
+                <h4 className="text-sm font-bold text-blue-800">Onboarding Pending Approval</h4>
+                <p className="text-xs text-blue-700 mt-0.5">
+                  Your joining details have been submitted successfully and are currently pending approval by the administrator.
+                </p>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start justify-between gap-3 shadow-sm">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 mt-0.5 flex-shrink-0" />
+                <div>
+                  <h4 className="text-sm font-bold text-emerald-800">Onboarding Approved</h4>
+                  <p className="text-xs text-emerald-700 mt-0.5">
+                    Your onboarding profile is approved and locked. You can view your record at any time.
+                  </p>
+                </div>
+              </div>
+              <Link
+                to="/recruiter/joining"
+                className="text-xs font-bold text-emerald-800 hover:text-emerald-900 bg-emerald-100 hover:bg-emerald-200 px-3 py-1.5 rounded-lg transition-colors flex-shrink-0"
+              >
+                View Record &rarr;
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── Date Filter Bar ── */}
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm px-4 py-3">

@@ -332,6 +332,9 @@ exports.create = async (req, res, next) => {
     if (data.jrNumber) {
       const Job = require('../models/Job');
       const job = await Job.findOne({ jrNumber: data.jrNumber });
+      if (job) {
+        data.division = job.division || 'BPO';
+      }
       if (job && job.status === 'Closed') {
         return res.status(403).json({ message: 'Position already filled / JR is closed' });
       }
@@ -556,19 +559,24 @@ exports.update = async (req, res, next) => {
     data.lastContactDate = new Date();
 
     // Joining-Based Lock: Check if changing to a JR that is already filled
-    if (data.jrNumber && data.jrNumber !== existing.jrNumber) {
+    if (data.jrNumber) {
       const Job = require('../models/Job');
       const job = await Job.findOne({ jrNumber: data.jrNumber });
-      if (job && job.status === 'Closed') {
-        return res.status(403).json({ message: 'Position already filled / JR is closed' });
+      if (job) {
+        data.division = job.division || 'BPO';
       }
+      if (data.jrNumber !== existing.jrNumber) {
+        if (job && job.status === 'Closed') {
+          return res.status(403).json({ message: 'Position already filled / JR is closed' });
+        }
 
-      const joinedCandidate = await Candidate.findOne({
-        jrNumber: data.jrNumber,
-        status: 'Joined'
-      });
-      if (joinedCandidate) {
-        return res.status(403).json({ message: 'Position already filled / candidate joined' });
+        const joinedCandidate = await Candidate.findOne({
+          jrNumber: data.jrNumber,
+          status: 'Joined'
+        });
+        if (joinedCandidate) {
+          return res.status(403).json({ message: 'Position already filled / candidate joined' });
+        }
       }
     }
 
@@ -1923,31 +1931,78 @@ exports.getJoiningForm = async (req, res, next) => {
 // GET /api/candidates/joining-form/autofill
 exports.getJoiningFormAutoFillData = async (req, res, next) => {
   try {
-    const { employeeId, jrId } = req.query;
+    const { employeeId } = req.query;
 
-    // Attempt to find by employeeId first (if existing employee)
+    // 1. Find by employeeId if provided
     if (employeeId) {
       const emp = await Employee.findOne({ employeeId });
       if (emp) return res.json(emp);
     }
 
-    // Fallback: search Candidate by current user if they applied or were assigned?
-    const cand = await Candidate.findOne({
-      assignedRecruiter: req.user._id,
-      status: 'Selected'
-    }).sort('-updatedAt');
+    // 2. Find by createdBy (the logged-in recruiter's User ID)
+    const emp = await Employee.findOne({ createdBy: req.user._id });
+    if (emp) return res.json(emp);
 
-    if (cand) {
-      return res.json({
-        name: cand.name,
-        email: cand.email,
-        phone: cand.phone,
-        address: cand.permanentAddress || cand.currentLocation || '',
-        position: cand.positionApplied || '',
-      });
+    // 3. Fallback: populate from current user's profile details
+    return res.json({
+      fullName: req.user.name,
+      email: req.user.email,
+      phone: '',
+      address: '',
+      positionApplied: req.user.role ? (req.user.role.charAt(0).toUpperCase() + req.user.role.slice(1)) : '',
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/candidates/bulk-email
+exports.bulkEmail = async (req, res, next) => {
+  try {
+    const { candidateIds, subject, body } = req.body;
+    if (!Array.isArray(candidateIds) || candidateIds.length === 0) {
+      return res.status(400).json({ message: 'candidateIds array is required' });
+    }
+    if (!subject || !body) {
+      return res.status(400).json({ message: 'subject and body are required' });
     }
 
-    res.json({});
+    const { sendEmail } = require('../utils/emailService');
+    const candidates = await Candidate.find({ _id: { $in: candidateIds } });
+
+    let sentCount = 0;
+    let failedCount = 0;
+
+    for (const cand of candidates) {
+      if (cand.email) {
+        try {
+          await sendEmail({
+            to: cand.email,
+            toName: cand.name,
+            subject: subject,
+            body: body
+          });
+          sentCount++;
+        } catch (err) {
+          console.error(`Failed to send bulk email to ${cand.email}:`, err);
+          failedCount++;
+        }
+      } else {
+        failedCount++;
+      }
+    }
+
+    await createLog({
+      type: 'system',
+      user: req.user._id,
+      userName: req.user.name,
+      role: req.user.role,
+      action: `Bulk sent emails to ${sentCount} candidate(s) (${failedCount} failed/skipped)`,
+      target: 'bulk',
+      ip: req.ip,
+    });
+
+    res.json({ message: 'Bulk emails processed', sentCount, failedCount });
   } catch (err) {
     next(err);
   }

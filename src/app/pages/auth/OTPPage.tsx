@@ -18,7 +18,12 @@ export function OTPPage() {
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
     inputRefs.current[0]?.focus();
-  }, []);
+    if (otpUserId) {
+      api.sendOTP(otpUserId).catch(err => {
+        console.error('Failed to auto-send OTP on mount:', err);
+      });
+    }
+  }, [otpUserId, navigate, user]);
 
   useEffect(() => {
     if (countdown > 0) {

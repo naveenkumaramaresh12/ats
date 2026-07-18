@@ -16,7 +16,7 @@ const STATUS_COLORS: Record<string, string> = {
 };
 
 const EMPTY_FORM = {
-  companyName: '', jrNumber: '', jobTitle: '', department: '',
+  companyName: '', jrNumber: '', jobTitle: '', department: '', division: 'BPO',
   jobType: '', experience: '', location: '', positions: 1,
   skills: '', description: '', requirements: '', status: 'Open',
 };
@@ -92,9 +92,9 @@ export function JobsListPage() {
       api.getJobs({ status: 'On Hold', limit: '1' }),
     ]).then(([open, closed, hold]) => {
       setStats({
-        open: open.pagination?.total || 0,
-        closed: closed.pagination?.total || 0,
-        onHold: hold.pagination?.total || 0,
+        open: open.pagination?.totalPositions || 0,
+        closed: closed.pagination?.totalPositions || 0,
+        onHold: hold.pagination?.totalPositions || 0,
       });
     }).catch(() => {});
   }, []);
@@ -116,6 +116,7 @@ export function JobsListPage() {
       jrNumber: job.jrNumber || '',
       jobTitle: job.jobTitle || '',
       department: job.department || '',
+      division: job.division || 'BPO',
       jobType: job.jobType || '',
       experience: job.experience || '',
       location: job.location || '',
@@ -228,9 +229,9 @@ export function JobsListPage() {
         {/* Stats */}
         <div className="grid grid-cols-3 gap-4">
           {[
-            { label: 'Open JRs', value: stats.open, color: 'text-emerald-600', bg: 'bg-emerald-50', filter: 'Open' },
-            { label: 'Closed JRs', value: stats.closed, color: 'text-slate-500', bg: 'bg-slate-100', filter: 'Closed' },
-            { label: 'On Hold', value: stats.onHold, color: 'text-amber-600', bg: 'bg-amber-50', filter: 'On Hold' },
+            { label: 'Open Positions', value: stats.open, color: 'text-emerald-600', bg: 'bg-emerald-50', filter: 'Open' },
+            { label: 'Closed Positions', value: stats.closed, color: 'text-slate-500', bg: 'bg-slate-100', filter: 'Closed' },
+            { label: 'On Hold Positions', value: stats.onHold, color: 'text-amber-600', bg: 'bg-amber-50', filter: 'On Hold' },
           ].map((s, i) => (
             <button key={i} onClick={() => setStatusFilter(statusFilter === s.filter ? '' : s.filter)}
               className={`${s.bg} rounded-2xl p-4 text-left border-2 transition-all ${statusFilter === s.filter ? 'border-green-400' : 'border-transparent'} shadow-sm`}>
@@ -430,6 +431,18 @@ export function JobsListPage() {
                     onChange={val => setForm(prev => ({ ...prev, department: val }))}
                     placeholder="Select department"
                   />
+                </div>
+                <div>
+                  <label className="text-xs text-slate-500 mb-1 block" style={{ fontWeight: 500 }}>Division *</label>
+                  <select
+                    value={form.division}
+                    onChange={e => setForm(prev => ({ ...prev, division: e.target.value }))}
+                    className="w-full px-3 py-2 text-sm bg-slate-50 border border-slate-200 rounded-xl outline-none"
+                  >
+                    <option value="BPO">BPO</option>
+                    <option value="IT">IT</option>
+                    <option value="Lateral">Lateral</option>
+                  </select>
                 </div>
                 <div>
                   <label className="text-xs text-slate-500 mb-1 block" style={{ fontWeight: 500 }}>Status</label>

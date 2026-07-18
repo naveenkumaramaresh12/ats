@@ -102,10 +102,11 @@ const PIE_COLORS = ['#16A34A', '#7C3AED', '#059669', '#D97706', '#DC2626'];
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 type DateRange = 'Day' | 'Week' | 'Quarter' | 'Year' | 'All' | 'Custom';
-type Tab = 'overview' | 'recruiting' | 'team' | 'structure' | 'analytics' | 'businessDev';
+type Tab = 'overview' | 'divisionDashboard' | 'recruiting' | 'team' | 'structure' | 'analytics' | 'businessDev';
 const DATE_TABS: DateRange[] = ['Day', 'Week', 'Quarter', 'Year', 'All', 'Custom'];
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview',   label: 'Overview' },
+  { id: 'divisionDashboard', label: 'Division Dashboard' },
   { id: 'recruiting', label: 'Recruiting' },
   { id: 'team',       label: 'Team' },
   { id: 'structure',  label: 'Team Structure' },
@@ -126,6 +127,11 @@ export function AdminDashboard() {
   const [sourceData, setSourceData]     = useState<any[]>([]);
   const [alerts, setAlerts]             = useState<any[]>([]);
   const [adminMetrics, setAdminMetrics] = useState<any>({});
+
+  // ── Division Dashboard state ────────────────────────────────────────────────
+  const [activeDivision, setActiveDivision] = useState<'BPO' | 'IT' | 'Lateral'>('BPO');
+  const [divisionData, setDivisionData] = useState<any>(null);
+  const [divLoading, setDivLoading] = useState(false);
 
   // ── Recruiter state ─────────────────────────────────────────────────────────
   const [dateRange, setDateRange]   = useState<DateRange>('Day');
@@ -442,6 +448,24 @@ export function AdminDashboard() {
     loadRec();
   }, [dateRange, customFrom, customTo]);
 
+  // ── Division Dashboard loader ───────────────────────────────────────────────
+  useEffect(() => {
+    if (activeTab === 'divisionDashboard') {
+      const loadDiv = async () => {
+        try {
+          setDivLoading(true);
+          const data = await api.getDivisionDashboard(activeDivision);
+          setDivisionData(data);
+        } catch (err) {
+          console.error('Failed to load division dashboard:', err);
+        } finally {
+          setDivLoading(false);
+        }
+      };
+      loadDiv();
+    }
+  }, [activeTab, activeDivision]);
+
   // ── Derived values ───────────────────────────────────────────────────────────
   const STATUS_CARDS = dashData?.pipeline
     ? Object.entries(dashData.pipeline).map(([label, count]: any, i: number) => ({
@@ -670,6 +694,103 @@ export function AdminDashboard() {
             })}
           </div>
         </>
+      )}
+
+      {/* ══════════════ TAB: DIVISION DASHBOARD ══════════════ */}
+      {activeTab === 'divisionDashboard' && (
+        <div className="space-y-6">
+          {/* Division Selector Header */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-4 flex justify-between items-center flex-wrap gap-3">
+            <div>
+              <h2 className="text-slate-800 text-base" style={{ fontWeight: 700 }}>Division Overview</h2>
+              <p className="text-slate-500 text-xs mt-0.5">Filter dashboard and onboarding metrics by division</p>
+            </div>
+            <div className="flex gap-1.5 bg-slate-100 p-1 rounded-xl">
+              {(['BPO', 'IT', 'Lateral'] as const).map(div => (
+                <button
+                  key={div}
+                  onClick={() => setActiveDivision(div)}
+                  className={`px-4 py-2 rounded-lg text-xs font-semibold transition-all ${
+                    activeDivision === div ? 'bg-green-600 text-white shadow-sm' : 'text-slate-600 hover:text-slate-800'
+                  }`}
+                >
+                  {div} Division
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {divLoading ? (
+            <div className="flex items-center justify-center h-48">
+              <Loader2 className="w-8 h-8 animate-spin text-green-600" />
+            </div>
+          ) : !divisionData ? (
+            <div className="text-center py-12 text-slate-400 text-sm">Failed to load division dashboard data.</div>
+          ) : (
+            <>
+              {/* Summary Metrics */}
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
+                {[
+                  { label: 'Active JRs', value: divisionData.totalJRs, color: 'text-blue-600', bg: 'bg-blue-50' },
+                  { label: 'Open Positions', value: divisionData.openPositions, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+                  { label: 'Screening Round', value: divisionData.pipeline?.screening || 0, color: 'text-amber-600', bg: 'bg-amber-50' },
+                  { label: 'Interview Stage', value: divisionData.pipeline?.interview || 0, color: 'text-violet-600', bg: 'bg-violet-50' },
+                  { label: 'Offered / Selected', value: divisionData.pipeline?.offer || 0, color: 'text-pink-600', bg: 'bg-pink-50' },
+                  { label: 'Joined Candidates', value: divisionData.pipeline?.joined || 0, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                ].map((s, i) => (
+                  <div key={i} className={`${s.bg} rounded-2xl p-4 border border-slate-100 shadow-sm text-center`}>
+                    <div className={`text-2xl ${s.color}`} style={{ fontWeight: 700 }}>{s.value}</div>
+                    <div className="text-slate-500 text-xs mt-0.5" style={{ fontWeight: 500 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Joined Candidates Table */}
+              <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 flex justify-between items-center">
+                  <h3 className="text-slate-800 text-sm" style={{ fontWeight: 600 }}>Onboarded / Joined Candidates — {activeDivision}</h3>
+                  <span className="text-xs text-green-600 font-semibold px-2.5 py-1 bg-green-50 rounded-full">
+                    {divisionData.joinedCandidates?.length || 0} Joined
+                  </span>
+                </div>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="bg-slate-50 border-b border-slate-100 text-left text-xs text-slate-500 uppercase tracking-wide">
+                        <th className="px-5 py-3 font-semibold">Candidate Name</th>
+                        <th className="px-5 py-3 font-semibold">Position Applied</th>
+                        <th className="px-5 py-3 font-semibold">Company / Client</th>
+                        <th className="px-5 py-3 font-semibold">Recruiter</th>
+                        <th className="px-5 py-3 font-semibold">Date of Joining</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50 text-slate-700">
+                      {(!divisionData.joinedCandidates || divisionData.joinedCandidates.length === 0) ? (
+                        <tr>
+                          <td colSpan={5} className="text-center py-10 text-slate-400 text-sm">
+                            No candidates joined under {activeDivision} division yet.
+                          </td>
+                        </tr>
+                      ) : (
+                        divisionData.joinedCandidates.map((c: any, idx: number) => (
+                          <tr key={idx} className="hover:bg-slate-50/50">
+                            <td className="px-5 py-3 font-medium text-slate-900">{c.name}</td>
+                            <td className="px-5 py-3">{c.positionApplied || '—'}</td>
+                            <td className="px-5 py-3 font-medium text-blue-600">{c.clientName || '—'}</td>
+                            <td className="px-5 py-3 text-slate-500 text-xs">{c.assignedRecruiterName || '—'}</td>
+                            <td className="px-5 py-3 text-emerald-600 font-semibold whitespace-nowrap">
+                              {c.dateOfJoining ? new Date(c.dateOfJoining).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
       )}
 
       {/* ══════════════ TAB: RECRUITING ══════════════ */}
